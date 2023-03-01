@@ -1,3 +1,19 @@
+"""
+This file manages all provided datasets
+
+Generated datasets:
+-Aos fatos: extracted with bs4 + selenium (g1.py)
+-G1 Fato ou Fake: extracted with bs4 + selenium (aos_fatos.py)
+
+Used datasets:
+- rumor_elections_2018.csv
+    source: (https://www.kaggle.com/datasets/caiovms/brazilian-election-fake-news-2018?select=
+    rumor.csv)
+
+- fake_corpus.csv
+    source: https://github.com/roneysco/Fake.br-Corpus/tree/master/full_texts
+"""
+
 import pandas as pd
 import re
 import nltk
@@ -6,10 +22,15 @@ from nltk.corpus import wordnet
 from nltk.stem.porter import PorterStemmer
 
 FIRST_RUN = False
+
 FINAL_PATH = "/Users/tiagomunarolo/Desktop/fakenews/scrapper/csv_data/final_dataset.csv"
 UNIFIED_DATASET = "/Users/tiagomunarolo/Desktop/fakenews/scrapper/csv_data/unified_dataset.csv"
+
+# PATH OF DATASETS
 G1_PATH = "/Users/tiagomunarolo/Desktop/fakenews/scrapper/csv_data/g1.csv"
 AOS_FATOS_PATH = "/Users/tiagomunarolo/Desktop/fakenews/scrapper/csv_data/aos_fatos.csv"
+FAKE_CORPUS = "/Users/tiagomunarolo/Desktop/fakenews/scrapper/csv_data/fake_corpus.csv"
+RUMOR_PATH = "/Users/tiagomunarolo/Desktop/fakenews/scrapper/csv_data/rumor.csv"
 
 if FIRST_RUN:
     nltk.download('stopwords')
@@ -18,17 +39,19 @@ if FIRST_RUN:
 
 ps = PorterStemmer()
 
-REMOVE_DATA = ['verdade', 'falso', 'fake', 'fato', 'true', 'mentira', 'verificar', 'checar']
-REMOVE_WORDS = []
+REMOVE_DATA = ['verdade', 'falso', 'fake',
+               'fato', 'true', 'mentira',
+               'verificar', 'checar']
 
 
-def get_synonyms():
+def get_synonyms(words_to_check: list):
     """
-
+    Returns list of synonyms based on provided words.
+    This step ensures and avoid bias due to specific words
     :return:
     """
     synonyms = ['fake']
-    for remove in REMOVE_DATA:
+    for remove in words_to_check:
         words = wordnet.synsets(remove, lang="por")
         for word in words:
             for syn in word.lemmas(lang="por"):
@@ -36,14 +59,15 @@ def get_synonyms():
     return set(synonyms)
 
 
-def remove_stop_words(content):
+def remove_stop_words(content, remove_words):
     """
-
-    :param content:
+    Remove all stop words for brazilian-portuguese
+    :param remove_words: list - words list to be removed
+    :param content: str - text of news
     :return:
     """
     review = re.sub(r'[^a-zA-Z]', ' ', content).lower().split()
-    review = [x for x in review if x not in REMOVE_WORDS]
+    review = [x for x in review if x not in remove_words]
     review = [ps.stem(word) for word in review if word not in stopwords.words('portuguese')]
     review = ' '.join(review)
     return review
@@ -53,28 +77,43 @@ def create_final_dataset():
     """
     Build final dataset to be analyzed
     """
-    global REMOVE_WORDS
-    REMOVE_WORDS = get_synonyms()
+    # Get a list of words to be removed (avoid bias)
+    remove_words = get_synonyms(words_to_check=REMOVE_DATA)
 
-    # G1 fato ou fake csv
+    """STEP 1: G1 dataset"""
+    # Reads g1.csv (G1 Fato ou Fake source)
     df = pd.read_csv(G1_PATH, index_col=0).reset_index(drop=True)
+    # Drop entries that can be dubious (either false or true)
     df_drop = df['RESUMO'].apply(lambda x: "fato" in x.lower() and "fake" in x.lower())
-    df['LABEL'] = df['RESUMO'].apply(lambda x: False if "#fake" in x.lower() else True)
     df = df[~df_drop]
+    # Label data according to it's content
+    df['LABEL'] = df['RESUMO'].apply(lambda x: False if "#FAKE" in x else True)
+    df['TEXT'] = df.apply(lambda x: f"{x['RESUMO']} {x['TEXTO']}", axis=1)
+    df = df[['TEXT', 'LABEL']]
 
-    # aos fatos csv
+    """STEP 2: Aos fatos dataset"""
+    # Reads aos_fatos.csv (Aos fatos data source)
     df2 = pd.read_csv(AOS_FATOS_PATH, index_col=0).reset_index(drop=True)
+    df2['TEXT'] = df2.apply(lambda x: f"{x['RESUMO']} {x['TEXTO']}", axis=1)
+    df2 = df2[['TEXT', 'LABEL']]
+
+    """STEP 3: Fake corpus dataset"""
+    df3 = pd.read_csv(FAKE_CORPUS, index_col=0).reset_index(drop=True)
+    df3.rename(columns={"label": "LABEL", "preprocessed_news": "TEXT"}, inplace=True)
+    df3.LABEL = df3.LABEL.replace({"fake": False, "true": True})
+
+    """STEP 4: Kaggle rumor election dataset"""
+    df4 = pd.read_csv(RUMOR_PATH, index_col=0, sep=";").reset_index(drop=True)
+    df4.rename(columns={"texto": "TEXT", "rotulo": "LABEL"}, inplace=True)
+    df4.LABEL = df4.LABEL.replace({"FALSO": False, "VERDADE": True})
+    df4 = df4[['TEXT', 'LABEL']]
 
     # concat dataframes
-    df = pd.concat([df, df2])
-    df.to_csv(path_or_buf=UNIFIED_DATASET, index_label=False)
+    final_df = pd.concat([df, df2, df3, df4])
+    final_df.TEXT = final_df.TEXT.str.lower()
+    final_df.reset_index(inplace=True, drop=True)
+    final_df.to_csv(path_or_buf=UNIFIED_DATASET)
 
-    df['TEXT'] = df.apply(lambda x: f"{x['RESUMO']} {x['TEXTO']}", axis=1)
-    df['TEXT'] = df['TEXT'].apply(remove_stop_words)
-    df.drop_duplicates(inplace=True)
-    df = df[['TEXT', 'LABEL']]
-    df.to_csv(path_or_buf=FINAL_PATH, index_label=False)
-
-
-# manage_dataset
-create_final_dataset()
+    final_df['TEXT'] = final_df['TEXT'].apply(lambda x: remove_stop_words(content=x, remove_words=remove_words))
+    final_df.drop_duplicates(inplace=True)
+    final_df.to_csv(path_or_buf=FINAL_PATH)
