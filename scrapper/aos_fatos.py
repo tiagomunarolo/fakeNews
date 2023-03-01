@@ -1,20 +1,19 @@
-import time
-
-import selenium.common.exceptions
-
 from scrapper.driver import Driver
 from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup, element
 import pandas as pd
 import re
-import random
+import warnings
 
+AOS_FATOS_PATH = "/Users/tiagomunarolo/Desktop/fakenews/scrapper/csv_data/aos_fatos.csv"
 HTML_PARSER = 'html.parser'
 TRUE_PAGE = "https://www.aosfatos.org/noticias/checamos/?page={}"
 READ_MORE = {'class': ['entry-read-more-inline']}
-NUM_PAGES = 163
+NUM_PAGES = 90
 
 CHECK_TYPES = ["FALSO", "DISTORCIDO", "VERDADEIRO", "CONTRADITÓRIO", "NÃO É BEM ASSIM"]
+
+warnings.filterwarnings(action="ignore", category=FutureWarning)
 
 
 def break_conditions(e_, to_ignore, checks, index):
@@ -39,24 +38,28 @@ def break_conditions(e_, to_ignore, checks, index):
 
 
 def get_labels(soup):
+    """
+    Search for image labels to get information
+    :param soup:
+    :return:
+    """
     false = soup.find_all("img", attrs={"data-image-id": "falso.png"})
     true = soup.find_all("img", attrs={"data-image-id": "true.png"})
     dist = soup.find_all("img", attrs={"data-image-id": "distorcido.png"})
     impreciso = soup.find_all("img", attrs={"data-image-id": "impreciso.png"})
-    checks = true + false + dist + impreciso
-
-    if not checks:
-        checks = soup.find_all("figcaption")
-    if not checks:
-        checks = soup.find_all("p", text=CHECK_TYPES)
-
-    return checks, checks
+    nao_assim = soup.find_all("img", attrs={"data-image-id": "nao_e_bem_assim.png"})
+    checks = true + false + dist + impreciso + nao_assim
+    quotes_ = soup.find_all("blockquote", )
+    return checks, quotes_
 
 
 def get_aos_fatos():
+    """
+    Web scrapping aof fatos
+    """
     df = pd.DataFrame(columns=['RESUMO', 'TEXTO', 'LABEL'])
     for page in range(1, NUM_PAGES):
-        driver = Driver(url=TRUE_PAGE.format(page), headless=True)
+        driver = Driver(url=TRUE_PAGE.format(page))
         driver.get_page(sleep_time=3)
         news_list = BeautifulSoup(driver.page_source, HTML_PARSER). \
             find_all("a", attrs={"class": ['entry-item-card', 'entry-content']})
@@ -64,31 +67,35 @@ def get_aos_fatos():
         to_ignore = ""
         for news_index, news in enumerate(news_list):
             url_ = "https://www.aosfatos.org" + news['href']
-            driver = Driver(url=url_, headless=True)
+            driver = Driver(url=url_)
             driver.get_page(sleep_time=2)
             e_ = driver.find_element(by=By.CLASS_NAME, value="default-container")
             html = e_.get_attribute('outerHTML')
             soup = BeautifulSoup(html, HTML_PARSER)
             summary = soup.find_all("h1")[0].text
-            checks, labels = get_labels(soup)
-            if not checks:
+            checks, quotes_ = get_labels(soup)
+            if not checks or len(checks) != len(quotes_):
                 print(f"Not found - {page} - {news_index + 1}")
                 continue
             for index, e in enumerate(checks):
-                label_ = "VERDADEIRO" if "VERDADEIRO" in str(e).upper() else "FALSO"
+                label_ = True if "VERDADEIRO" in str(e).upper() else False
                 for e_ in e.next_elements:
                     code = break_conditions(e_, to_ignore, checks, index)
                     if code == -1:
                         break
                     elif code == 0:
                         continue
+                    label_update = label_
+                    if str(e_) != str(quotes_[index]):
+                        label_update = not label_
                     text = e_.text.strip()
                     if len(text) > 50 and re.sub(r"[\n\r\s]+", "", e_.text) not in to_ignore:
-                        data = {"RESUMO": [summary], "TEXTO": [text], "LABEL": [label_]}
+                        data = {"RESUMO": [summary], "TEXTO": [text], "LABEL": [label_update]}
+                        print(data)
                         df2 = pd.DataFrame(data=data)
                         df = pd.concat([df, df2])
             print(f"PAGE {page} - ({news_index + 1}/{len(news_list)})")
-            df.to_csv("./aos_fatos.csv")
+            df.to_csv(path_or_buf=AOS_FATOS_PATH, index_label=False)
             driver.quit()
 
 

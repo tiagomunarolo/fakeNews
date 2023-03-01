@@ -18,7 +18,7 @@ if FIRST_RUN:
 
 ps = PorterStemmer()
 
-REMOVE_DATA = ['verdade', 'falso', 'fake', 'fato', 'true']
+REMOVE_DATA = ['verdade', 'falso', 'fake', 'fato', 'true', 'mentira', 'verificar', 'checar']
 REMOVE_WORDS = []
 
 
@@ -55,21 +55,23 @@ def create_final_dataset():
     """
     global REMOVE_WORDS
     REMOVE_WORDS = get_synonyms()
+
+    # G1 fato ou fake csv
     df = pd.read_csv(G1_PATH, index_col=0).reset_index(drop=True)
     df_drop = df['RESUMO'].apply(lambda x: "fato" in x.lower() and "fake" in x.lower())
     df['LABEL'] = df['RESUMO'].apply(lambda x: False if "#fake" in x.lower() else True)
     df = df[~df_drop]
 
+    # aos fatos csv
     df2 = pd.read_csv(AOS_FATOS_PATH, index_col=0).reset_index(drop=True)
-    df2.replace({"VERDADEIRO": True, "FALSO": False}, inplace=True)
-    df2_temp = df2[~df2.LABEL]
-    df2.drop_duplicates(subset=["RESUMO"], inplace=True)
-    df2 = pd.concat([df2, df2_temp])
+
+    # concat dataframes
     df = pd.concat([df, df2])
     df.to_csv(path_or_buf=UNIFIED_DATASET, index_label=False)
 
     df['TEXT'] = df.apply(lambda x: f"{x['RESUMO']} {x['TEXTO']}", axis=1)
     df['TEXT'] = df['TEXT'].apply(remove_stop_words)
+    df.drop_duplicates(inplace=True)
     df = df[['TEXT', 'LABEL']]
     df.to_csv(path_or_buf=FINAL_PATH, index_label=False)
 

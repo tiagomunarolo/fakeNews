@@ -5,8 +5,6 @@ from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 
 import time
-import requests
-from bs4 import BeautifulSoup
 
 SCROLL = "window.scrollTo(0, document.body.scrollHeight);"
 
