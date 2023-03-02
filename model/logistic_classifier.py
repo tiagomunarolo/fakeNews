@@ -1,3 +1,6 @@
+"""
+Logistic Regression Model - sklearn implementation
+"""
 import os.path
 import matplotlib.pyplot as plt
 import time
@@ -5,7 +8,7 @@ import pickle
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
-from scrapper.manage_dataset import create_final_dataset
+from scrapper.manage_dataset import create_final_dataset, generate_dataset_for_input
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, f1_score
 import pandas as pd
 
@@ -18,7 +21,7 @@ class LogisticModel(LogisticRegression):
     Logistic Regression Model
     """
 
-    def __init__(self, data_path, show_results=True):
+    def __init__(self, data_path=FINAL_PATH, show_results=True):
         """"""
         super(LogisticModel).__init__()
         self.show_results = show_results
@@ -36,16 +39,20 @@ class LogisticModel(LogisticRegression):
             time.sleep(3)
 
         data = pd.read_csv(self.data_path)
+        filter_df = data.TEXT.apply(lambda x: len(x.split()) > 50)
+        data = data[filter_df]
         self.X = data.TEXT
         self.Y = data.LABEL
 
-    def _vectorize_data(self):
+    def _vectorize_data(self, X=None):
         """
         Vectorize dataset
         """
-        vectorize_data = TfidfVectorizer()
-        vectorize_data.fit(self.X)
-        self.X = vectorize_data.transform(self.X)
+        if not X:
+            X = self.X
+        self.tf_vector = TfidfVectorizer()
+        self.tf_vector.fit(X)
+        self.X = self.tf_vector.transform(X)
 
     def _split_data(self):
         """
@@ -71,7 +78,8 @@ class LogisticModel(LogisticRegression):
             self._store_model()
         else:
             with open(LOGISTIC_PATH, 'rb') as file:
-                self.model = pickle.load(file=file)
+                lm = pickle.load(file=file)
+                self.model = lm.model
         # accuracy score on the training data
         if self.show_results:
             self._show_results(X_train, X_test, Y_train, Y_test)
@@ -81,7 +89,7 @@ class LogisticModel(LogisticRegression):
         Save model to ./models dir
         """
         with open(LOGISTIC_PATH, 'wb') as file:
-            pickle.dump(obj=self.model, file=file)
+            pickle.dump(obj=self, file=file)
 
     def _show_results(self, X_train, X_test, Y_train, Y_test):
         """
@@ -115,3 +123,18 @@ class LogisticModel(LogisticRegression):
         self._read_dataset()
         self._vectorize_data()
         self._fit_model(force=force)
+
+    @staticmethod
+    def predict_output(text_data):
+        """
+        Run LR model and output its results
+        """
+        with open(LOGISTIC_PATH, 'rb') as file:
+            lm = pickle.load(file=file)
+            X = generate_dataset_for_input(text=text_data)
+            X = lm.tf_vector.transform(X)
+            response = lm.model.predict(X)
+            if not response[0]:
+                print("FALSO")
+            else:
+                print("VERDADEIRO")

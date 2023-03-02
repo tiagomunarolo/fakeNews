@@ -73,6 +73,18 @@ def remove_stop_words(content, remove_words):
     return review
 
 
+def generate_dataset_for_input(text):
+    """
+    Get preprocessed text
+    :param text: str
+    :return:
+    """
+    remove_words = get_synonyms(words_to_check=REMOVE_DATA)
+    df = pd.DataFrame(data={"TEXT": [text]})
+    df['TEXT'] = df['TEXT'].apply(lambda x: remove_stop_words(content=x, remove_words=remove_words))
+    return df.TEXT
+
+
 def create_final_dataset():
     """
     Build final dataset to be analyzed
