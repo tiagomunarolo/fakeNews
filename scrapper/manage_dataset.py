@@ -18,8 +18,9 @@ import pandas as pd
 import re
 import nltk
 from nltk.corpus import stopwords
+from unicodedata import normalize
 from nltk.corpus import wordnet
-from nltk.stem.porter import PorterStemmer
+from nltk.stem import SnowballStemmer
 
 FIRST_RUN = False
 
@@ -37,8 +38,8 @@ if FIRST_RUN:
     nltk.download('wordnet')
     nltk.download('omw-1.4')
 
-ps = PorterStemmer()
-
+stemmer = SnowballStemmer(language="portuguese")
+STOP_WORDS = stopwords.words('portuguese')
 REMOVE_DATA = ['verdade', 'falso', 'fake',
                'fato', 'true', 'mentira',
                'verificar', 'checar']
@@ -66,11 +67,11 @@ def remove_stop_words(content, remove_words):
     :param content: str - text of news
     :return:
     """
-    review = re.sub(r'[^a-zA-Z]', ' ', content).lower().split()
-    review = [x for x in review if x not in remove_words]
-    review = [ps.stem(word) for word in review if word not in stopwords.words('portuguese')]
-    review = ' '.join(review)
-    return review
+    txt = normalize('NFKD', content).encode('ASCII', 'ignore').decode('ASCII')
+    txt = re.sub(r'[^\w+]', ' ', txt).split()
+    txt = [stemmer.stem(w) for w in txt if w not in remove_words]
+    txt = ' '.join(txt)
+    return txt
 
 
 def generate_dataset_for_input(text):
@@ -106,7 +107,7 @@ def create_final_dataset():
     """STEP 2: Aos fatos dataset"""
     # Reads aos_fatos.csv (Aos fatos data source)
     df2 = pd.read_csv(AOS_FATOS_PATH, index_col=0).reset_index(drop=True)
-    df2['TEXT'] = df2.apply(lambda x: f"{x['RESUMO']} {x['TEXTO']}", axis=1)
+    df2.rename(columns={"TEXTO": "TEXT"}, inplace=True)
     df2 = df2[['TEXT', 'LABEL']]
 
     """STEP 3: Fake corpus dataset"""
@@ -126,6 +127,7 @@ def create_final_dataset():
     final_df.reset_index(inplace=True, drop=True)
     final_df.to_csv(path_or_buf=UNIFIED_DATASET)
 
+    remove_words = STOP_WORDS + list(remove_words)
     final_df['TEXT'] = final_df['TEXT'].apply(lambda x: remove_stop_words(content=x, remove_words=remove_words))
     final_df.drop_duplicates(inplace=True)
     final_df.to_csv(path_or_buf=FINAL_PATH)
