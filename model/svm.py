@@ -1,29 +1,29 @@
 """
-Logistic Regression Model - sklearn implementation
+SVM Model - sklearn implementation
 """
-from model.base import Base
 from . import BASE_PATH
-from sklearn.linear_model import LogisticRegression
+from model.base import Base
+from sklearn.svm import SVC
 
-LOGISTIC_PATH = BASE_PATH + "/logistic.pyc"
+SVM_PATH = BASE_PATH + "/svm.pyc"
 
 
-class LogisticModel(LogisticRegression, Base):
+class SVMModel(SVC, Base):
     """
-    Logistic Regression Model
+    SVC Regression Model
     """
 
     def __init__(self, show_results=False):
         Base.__init__(self, show_results=show_results)
-        LogisticRegression.__init__(self)
+        SVC.__init__(self)
 
-    def run_model(self, force=False) -> None:
+    def run_model(self, force=False):
         """
         Run LR model and output its results
         """
         super().run_model(
-            LOGISTIC_PATH,
-            LogisticRegression,
+            SVM_PATH,
+            SVC,
             force)
 
     @staticmethod
@@ -35,4 +35,4 @@ class LogisticModel(LogisticRegression, Base):
         """
         return Base.predict_output(
             text_data,
-            LOGISTIC_PATH)
+            SVM_PATH)
