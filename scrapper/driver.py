@@ -40,6 +40,13 @@ class Driver(webdriver.Chrome):
         return element.get_attribute("scrollHeight")
 
     def find_element_and_click(self, by, value, sleep_time=5):
+        """
+        find element in screen by value, and click on it
+        :param by:
+        :param value:
+        :param sleep_time:
+        :return:
+        """
         try:
             element = self.find_element(by=by, value=value)
             element.click()

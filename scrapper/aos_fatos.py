@@ -97,6 +97,3 @@ def get_aos_fatos():
             print(f"PAGE {page} - ({news_index + 1}/{len(news_list)})")
             df.to_csv(path_or_buf=AOS_FATOS_PATH, index_label=False)
             driver.quit()
-
-
-get_aos_fatos()

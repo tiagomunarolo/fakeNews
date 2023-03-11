@@ -53,6 +53,3 @@ def generate_fake_data():
             print(e)
             break
     print("FONALIZADO")
-
-
-generate_fake_data()

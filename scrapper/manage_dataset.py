@@ -69,8 +69,10 @@ def remove_stop_words(content, remove_words):
     :return:
     """
     txt = normalize('NFKD', content).encode('ASCII', 'ignore').decode('ASCII')
+    txt = re.sub(r"http\S+", " ", txt)  # Remove URLs
     txt = re.sub(r'[^\w+]', ' ', txt).split()
     txt = [stemmer.stem(w) for w in txt if w not in remove_words and not w.isnumeric()]
+    txt = [x for x in txt if len(x) > 1]  # Remove residuals
     txt = ' '.join(txt)
     return txt
 

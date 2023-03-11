@@ -50,6 +50,3 @@ def get_g1_page():
         df = pd.concat([df, df2])
 
     df.to_csv(path_or_buf="./g1.csv")
-
-
-get_g1_page()
