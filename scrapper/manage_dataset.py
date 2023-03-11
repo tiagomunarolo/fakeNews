@@ -32,6 +32,7 @@ G1_PATH = "/Users/tiagomunarolo/Desktop/fakenews/scrapper/csv_data/g1.csv"
 AOS_FATOS_PATH = "/Users/tiagomunarolo/Desktop/fakenews/scrapper/csv_data/aos_fatos.csv"
 FAKE_CORPUS = "/Users/tiagomunarolo/Desktop/fakenews/scrapper/csv_data/fake_corpus.csv"
 RUMOR_PATH = "/Users/tiagomunarolo/Desktop/fakenews/scrapper/csv_data/rumor.csv"
+GPT_PATH = "/Users/tiagomunarolo/Desktop/fakenews/scrapper/csv_data/chatgpt.csv"
 
 if FIRST_RUN:
     nltk.download('stopwords')
@@ -69,7 +70,7 @@ def remove_stop_words(content, remove_words):
     """
     txt = normalize('NFKD', content).encode('ASCII', 'ignore').decode('ASCII')
     txt = re.sub(r'[^\w+]', ' ', txt).split()
-    txt = [stemmer.stem(w) for w in txt if w not in remove_words]
+    txt = [stemmer.stem(w) for w in txt if w not in remove_words and not w.isnumeric()]
     txt = ' '.join(txt)
     return txt
 
@@ -121,8 +122,12 @@ def create_final_dataset():
     df4.LABEL = df4.LABEL.replace({"FALSO": False, "VERDADE": True})
     df4 = df4[['TEXT', 'LABEL']]
 
+    """STEP 5: Chat GPT Fake data set"""
+    df5 = pd.read_csv(GPT_PATH, index_col=0).reset_index(drop=True)
+    df5 = df5[['TEXT', 'LABEL']]
+
     # concat dataframes
-    final_df = pd.concat([df, df2, df3, df4])
+    final_df = pd.concat([df, df2, df3, df4, df5])
     final_df.TEXT = final_df.TEXT.str.lower()
     final_df.reset_index(inplace=True, drop=True)
     final_df.to_csv(path_or_buf=UNIFIED_DATASET)

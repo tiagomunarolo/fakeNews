@@ -16,6 +16,7 @@ class DecisionTree(Base):
         "show_results": False,
         "model_type": DecisionTreeClassifier,
         "store_path": TREE_PATH,
+        "param_grid": {'criterion': ['gini', 'entropy']}
     }
 
     def __init__(self, show_results=False):

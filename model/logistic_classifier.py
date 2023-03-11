@@ -17,6 +17,10 @@ class LogisticModel(Base):
         "show_results": False,
         "model_type": LogisticRegression,
         "store_path": LOGISTIC_PATH,
+        "param_grid": {
+            'C': [0.1, 1, 10, 100],
+            'solver': ['newton-cg', 'lbfgs', 'liblinear', ]
+        }
     }
 
     def __init__(self, show_results=False):

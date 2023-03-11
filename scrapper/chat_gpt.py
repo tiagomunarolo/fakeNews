@@ -10,7 +10,9 @@ temas = ["vacinação", "horário eleitoral", "impostos", "educação",
          "saúde", "política", "crimes políticos", "prefeitura", "polícia",
          "armamento", "economia", "guerra", "relações internacionais",
          "democracia", "comunismo", "lei", "sistema eleitoral", "votação",
-         "eleição", "constituição", "governo", "ministério", "direitos humanos", "religião"]
+         "eleição", "constituição", "governo", "ministério",
+         "direitos humanos", "religião", "corrupção", "crime", "liberdade de expressão",
+         "ditadura", ]
 
 
 def generate_fake_data():
@@ -25,7 +27,7 @@ def generate_fake_data():
     for index in range(1000):
         min_ = random.randint(50, 120)
         max_ = random.randint(121, 200)
-        tema_index = random.randint(0, len(temas) - 1)
+        tema_index = index % len(temas)
         news = temas[tema_index]
 
         print(f"Gerando notícia falsa {index + 1}: "
@@ -44,7 +46,8 @@ def generate_fake_data():
             data = {"TEXT": [text], "LABEL": [False]}
             df2 = pd.DataFrame(data=data)
             df = pd.concat([df, df2])
-            df.to_csv(path_or_buf="./csv_data/chatgpt.csv")
+            df = df[['TEXT', 'LABEL']]
+            df.to_csv(path_or_buf="./csv_data/chatgpt.csv", index_label=False)
             time.sleep(30)
         except Exception as e:
             print(e)

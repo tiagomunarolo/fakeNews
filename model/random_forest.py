@@ -17,6 +17,10 @@ class RandomForestModel(Base):
         "show_results": False,
         "model_type": RandomForestClassifier,
         "store_path": FOREST_PATH,
+        "param_grid": {
+            'n_estimators': [100, 200, 500, 1000],
+            'max_features': ['auto', 'sqrt', 'log2']
+        }
     }
 
     def __init__(self, show_results=False):
