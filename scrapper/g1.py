@@ -2,11 +2,32 @@ from selenium.webdriver.common.by import By
 from scrapper.driver import Driver
 from bs4 import BeautifulSoup
 import pandas as pd
+from scrapper import DATA_PATH
 
 SCROLL = "window.scrollTo(0, document.body.scrollHeight);"
 HTML_PARSER = 'html.parser'
 GET_MORE = "VEJA MAIS"
 G1_PAGE = "https://g1.globo.com/fato-ou-fake/"
+
+
+def build_dataset(html):
+    """
+    Builds G1 dataset
+    :param html: bs4 outer element
+    """
+    soup = BeautifulSoup(html, HTML_PARSER)
+    df = pd.DataFrame(columns=['RESUMO', 'TEXTO'])
+    for article in soup.find_all(class_='feed-post-body'):
+        if not article.a:
+            continue
+        summary = article.find(class_='feed-post-body-resumo')
+        if not summary:
+            continue
+        data = {"RESUMO": [article.a.text], "TEXTO": [summary.text]}
+        df2 = pd.DataFrame(data=data)
+        df = pd.concat([df, df2])
+
+    df.to_csv(path_or_buf=f"{DATA_PATH}/g1.csv")
 
 
 def get_g1_page():
@@ -36,17 +57,4 @@ def get_g1_page():
     element = driver.find_element(value="bstn-launcher")
     html = element.get_attribute('outerHTML')
     driver.quit()
-    soup = BeautifulSoup(html, HTML_PARSER)
-    df = pd.DataFrame(columns=['RESUMO', 'TEXTO'])
-
-    for article in soup.find_all(class_='feed-post-body'):
-        if not article.a:
-            continue
-        summary = article.find(class_='feed-post-body-resumo')
-        if not summary:
-            continue
-        data = {"RESUMO": [article.a.text], "TEXTO": [summary.text]}
-        df2 = pd.DataFrame(data=data)
-        df = pd.concat([df, df2])
-
-    df.to_csv(path_or_buf="./g1.csv")
+    build_dataset(html=html)

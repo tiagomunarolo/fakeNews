@@ -1,0 +1,6 @@
+import os
+
+PROJECT_PATH = os.getenv('PROJECT_PATH', None)
+
+assert PROJECT_PATH, "PROJECT_PATH ENV MUST BE SET"
+DATA_PATH = f"{PROJECT_PATH}/dataset"

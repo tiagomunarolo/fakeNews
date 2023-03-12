@@ -10,6 +10,9 @@ SCROLL = "window.scrollTo(0, document.body.scrollHeight);"
 
 
 class Driver(webdriver.Chrome):
+    """
+    Web crawler driver - Gets information via selenium
+    """
 
     def __init__(self, url: str = None, headless=True):
         option = Options()
@@ -21,10 +24,19 @@ class Driver(webdriver.Chrome):
             options=option)
 
     def get_page(self, sleep_time=5):
+        """
+        Retrives hrml document form URL
+        :param sleep_time:
+        """
         self.get(self.url)
         time.sleep(sleep_time)
 
     def scroll_page(self, sleep_time=5, scroll_pos=None):
+        """
+        Executes selenium script to scroll page
+        :param sleep_time: int
+        :param scroll_pos: int scroll position
+        """
         if scroll_pos:
             self.execute_script(f"window.scrollTo(0, {scroll_pos});")
         else:

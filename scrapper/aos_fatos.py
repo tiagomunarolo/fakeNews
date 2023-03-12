@@ -1,11 +1,11 @@
 from scrapper.driver import Driver
 from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup, element
+from . import DATA_PATH
 import pandas as pd
-import re
 import warnings
 
-AOS_FATOS_PATH = "/Users/tiagomunarolo/Desktop/fakenews/scrapper/csv_data/aos_fatos.csv"
+AOS_FATOS_PATH = f"{DATA_PATH}/aos_fatos.csv"
 HTML_PARSER = 'html.parser'
 TRUE_PAGE = "https://www.aosfatos.org/noticias/checamos/?page={}"
 READ_MORE = {'class': ['entry-read-more-inline']}
@@ -16,7 +16,14 @@ CHECK_TYPES = ["FALSO", "DISTORCIDO", "VERDADEIRO", "CONTRADITÓRIO", "NÃO É B
 warnings.filterwarnings(action="ignore", category=FutureWarning)
 
 
-def break_conditions(e_, to_ignore, checks, index):
+def break_conditions(e_, checks, index):
+    """
+    Break conditions to html parser
+    :param e_: html elements
+    :param checks: one of CHECK_TYPES
+    :param index: index of element
+    :return:
+    """
     if e_ in checks:
         return -1
 
@@ -24,7 +31,6 @@ def break_conditions(e_, to_ignore, checks, index):
         if "Referências:" in e_.text:
             return -1
         elif e_.attrs == READ_MORE:
-            to_ignore += re.sub(r"[\n\r\s]+", "", e_.text)
             if index == len(checks) - 1:
                 return -1
 
@@ -64,7 +70,6 @@ def get_aos_fatos():
         news_list = BeautifulSoup(driver.page_source, HTML_PARSER). \
             find_all("a", attrs={"class": ['entry-item-card', 'entry-content']})
         driver.quit()
-        to_ignore = ""
         for news_index, news in enumerate(news_list):
             url_ = "https://www.aosfatos.org" + news['href']
             driver = Driver(url=url_)
@@ -80,7 +85,7 @@ def get_aos_fatos():
             for index, e in enumerate(checks):
                 label_ = True if "VERDADEIRO" in str(e).upper() else False
                 for e_ in e.next_elements:
-                    code = break_conditions(e_, to_ignore, checks, index)
+                    code = break_conditions(e_, checks, index)
                     if code == -1:
                         break
                     elif code == 0:
@@ -89,7 +94,7 @@ def get_aos_fatos():
                     if str(e_) != str(quotes_[index]):
                         label_update = not label_
                     text = e_.text.strip()
-                    if len(text) > 50 and re.sub(r"[\n\r\s]+", "", e_.text) not in to_ignore:
+                    if len(text) > 50:
                         data = {"RESUMO": [summary], "TEXTO": [text], "LABEL": [label_update]}
                         print(data)
                         df2 = pd.DataFrame(data=data)

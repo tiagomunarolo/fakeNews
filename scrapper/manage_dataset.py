@@ -21,18 +21,19 @@ from nltk.corpus import stopwords
 from unicodedata import normalize
 from nltk.corpus import wordnet
 from nltk.stem import SnowballStemmer
+from scrapper import DATA_PATH
 
 FIRST_RUN = False
 
-FINAL_PATH = "/Users/tiagomunarolo/Desktop/fakenews/scrapper/csv_data/final_dataset.csv"
-UNIFIED_DATASET = "/Users/tiagomunarolo/Desktop/fakenews/scrapper/csv_data/unified_dataset.csv"
+FINAL_PATH = f"{DATA_PATH}/final_dataset.csv"
+UNIFIED_DATASET = f"{DATA_PATH}/unified_dataset.csv"
 
 # PATH OF DATASETS
-G1_PATH = "/Users/tiagomunarolo/Desktop/fakenews/scrapper/csv_data/g1.csv"
-AOS_FATOS_PATH = "/Users/tiagomunarolo/Desktop/fakenews/scrapper/csv_data/aos_fatos.csv"
-FAKE_CORPUS = "/Users/tiagomunarolo/Desktop/fakenews/scrapper/csv_data/fake_corpus.csv"
-RUMOR_PATH = "/Users/tiagomunarolo/Desktop/fakenews/scrapper/csv_data/rumor.csv"
-GPT_PATH = "/Users/tiagomunarolo/Desktop/fakenews/scrapper/csv_data/chatgpt.csv"
+G1_PATH = f"{DATA_PATH}/g1.csv"
+AOS_FATOS_PATH = f"{DATA_PATH}/aos_fatos.csv"
+FAKE_CORPUS = f"{DATA_PATH}/fake_corpus.csv"
+RUMOR_PATH = f"{DATA_PATH}/rumor.csv"
+GPT_PATH = f"{DATA_PATH}/chatgpt.csv"
 
 if FIRST_RUN:
     nltk.download('stopwords')
@@ -68,8 +69,10 @@ def remove_stop_words(content, remove_words):
     :param content: str - text of news
     :return:
     """
-    txt = normalize('NFKD', content).encode('ASCII', 'ignore').decode('ASCII')
-    txt = re.sub(r"http\S+", " ", txt)  # Remove URLs
+    # remove special characters
+    txt = re.sub('http://\S+|https://\S+', ' ', content)  # Remove URLs
+    txt = normalize('NFKD', txt).encode('ASCII', 'ignore').decode('ASCII')
+    txt = re.sub('[^a-zA-Z]', ' ', txt)
     txt = re.sub(r'[^\w+]', ' ', txt).split()
     txt = [stemmer.stem(w) for w in txt if w not in remove_words and not w.isnumeric()]
     txt = [x for x in txt if len(x) > 1]  # Remove residuals
@@ -135,6 +138,9 @@ def create_final_dataset():
     final_df.to_csv(path_or_buf=UNIFIED_DATASET)
 
     remove_words = STOP_WORDS + list(remove_words)
-    final_df['TEXT'] = final_df['TEXT'].apply(lambda x: remove_stop_words(content=x, remove_words=remove_words))
+    final_df['TEXT'] = final_df['TEXT'].apply(
+        lambda x: remove_stop_words(content=x, remove_words=remove_words))
     final_df.drop_duplicates(inplace=True)
+    # Remove texts with text size >=500 or lower than 15
+    final_df = final_df[~final_df.TEXT.apply(lambda x: len(x.split()) <= 15 or len(x.split()) > 500)]
     final_df.to_csv(path_or_buf=FINAL_PATH)
