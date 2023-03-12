@@ -10,7 +10,8 @@ from model.base import GenericStoreModel
 from . import FINAL_PATH, BASE_PATH as MODELS_PATH
 
 PATH_DEFAULT = './classifier_models.csv'
-VOTING_PATH = f'{MODELS_PATH}/voting.model'
+VOTING_MODEL = 'voting.model'
+VOTING_PATH = f'{MODELS_PATH}{VOTING_MODEL}'
 
 
 class VotingClassifierModel(GenericStoreModel):
@@ -26,15 +27,15 @@ class VotingClassifierModel(GenericStoreModel):
         self.X = None
         self.Y = None
 
-    def _get_models(self):
+    def _get_stored_models(self):
         """
         Read all saved models in self.stored_models variable
         All models are binary classes with its own pre-trained parameters
         """
         files = os.listdir(MODELS_PATH)
         for file_name in files:
-            _file = MODELS_PATH + os.sep + file_name
-            if _file == VOTING_PATH:
+            _file = MODELS_PATH + file_name
+            if file_name == VOTING_MODEL or not _file.endswith('.model'):
                 continue
             with open(_file, 'rb') as model_class:
                 self.stored_models.append(pickle.load(file=model_class))
@@ -80,14 +81,14 @@ class VotingClassifierModel(GenericStoreModel):
         """
         Fit model
         """
-        if not force:
-            return self._read_model()
         # Get stored models
-        self._get_models()
+        self._get_stored_models()
         # Get dataset
         self._get_dataset()
         # Manage estimators
         estimators = [(str(x.model), x.model) for x in self.stored_models]
+        if not force:
+            return self
         # Build a new model
         self.model = VotingClassifier(estimators=estimators)
         # Split dataset for training and test
@@ -107,14 +108,16 @@ class VotingClassifierModel(GenericStoreModel):
         :parameter: text_data: str: Text to be predicted
         Generates prediction, given a text
         """
-        self._get_models()
+        if not self.stored_models:
+            self._get_stored_models()
+        if not self.model:
+            self.model = self._read_model()
+
         columns = [str(x.model) for x in self.stored_models]
         df = pd.DataFrame(columns=columns)
-        for mc in self.stored_models:
-            response = mc.predict_output(text_data=text_data)
-            df[str(mc.model)] = response
-        df.dropna(axis=1, inplace=True)
-        # get self stored model (to avoid retraining time)
-        self.model = self._read_model()
+        for m_class in self.stored_models:
+            response = m_class.predict_output(
+                text_data=text_data, model_=m_class)
+            df[str(m_class.model)] = [response]
         response = self.model.predict(df)
         return True if response[0] else False

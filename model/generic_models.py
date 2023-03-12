@@ -65,6 +65,8 @@ AVAILABLE_MODELS = {
     "LINEAR": LR_ARGS,
 }
 
+__all__ = ['AVAILABLE_MODELS', 'GenericModelConstructor']
+
 
 class GenericModelConstructor(BaseVectorizeModel):
     """

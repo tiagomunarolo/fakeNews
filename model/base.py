@@ -17,6 +17,8 @@ import warnings
 warnings.filterwarnings(action="ignore", category=FutureWarning)
 warnings.filterwarnings(action="ignore", category=UserWarning)
 
+__all__ = ['GenericStoreModel', 'BaseVectorizeModel']
+
 
 @dataclass(slots=True)
 class GenericStoreModel:
@@ -159,17 +161,20 @@ class BaseVectorizeModel(GenericStoreModel):
         self._vectorize_data()
         self._fit_model(force=force)
 
-    def predict_output(self, text_data: str):
+    def predict_output(self, text_data: str, model_=None):
         """
         :parameter: text_data: str: Text to be predicted
         Generates prediction, given a text
         """
-        with open(self.store_path, 'rb') as file:
-            m = pickle.load(file=file)
-            X = generate_dataset_for_input(text=text_data)
-            X = m.tf_vector.transform(X)
-            try:
-                response = m.model.predict(X)
-            except TypeError:
-                response = m.model.predict(X.toarray())
-            return True if response[0] else False
+        if model_:
+            m = model_
+        else:
+            with open(self.store_path, 'rb') as file:
+                m = pickle.load(file=file)
+        X = generate_dataset_for_input(text=text_data)
+        X = m.tf_vector.transform(X)
+        try:
+            response = m.model.predict(X)
+        except TypeError:
+            response = m.model.predict(X.toarray())
+        return True if response[0] else False
