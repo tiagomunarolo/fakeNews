@@ -27,7 +27,7 @@ PROJECT_PATH = os.getenv('PROJECT_PATH', None)
 
 assert PROJECT_PATH, "PROJECT_PATH ENV MUST BE SET"
 MODELS_PATH = f"{PROJECT_PATH}/model/models/"
-DATASET_PATH = f"{PROJECT_PATH}/scrapper/csv_data/final_dataset.csv"
+DATASET_PATH = f"{PROJECT_PATH}/dataset/final_dataset.csv"
 
 FOREST_PATH = MODELS_PATH + "randomforest.model"
 LOGISTIC_PATH = MODELS_PATH + "logistic.model"
