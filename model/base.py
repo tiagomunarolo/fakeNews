@@ -5,6 +5,7 @@ import os.path
 import matplotlib.pyplot as plt
 import pickle
 from . import FINAL_PATH
+from dataclasses import dataclass
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.model_selection import train_test_split
 from scrapper.manage_dataset import generate_dataset_for_input
@@ -17,34 +18,31 @@ warnings.filterwarnings(action="ignore", category=FutureWarning)
 warnings.filterwarnings(action="ignore", category=UserWarning)
 
 
+@dataclass(slots=True)
 class GenericStoreModel:
     """
     Generic Store Model
     """
+    store_path: str
 
-    def __init__(self, store_path):
-        self.store_path = store_path
-        self.model = None
-
-    def _store_model(self):
+    def _store_model(self, obj):
         """
         Save model to ./models dir
         """
         with open(self.store_path, 'wb') as file:
-            pickle.dump(obj=self, file=file)
+            pickle.dump(obj=obj, file=file)
 
     def _read_model(self):
         """
         Read model from ./models dir
         """
         with open(self.store_path, 'rb') as file:
-            m = pickle.load(file=file)
-            self.model = m.model
+            return pickle.load(file=file).model
 
 
-class BaseTfIdf(GenericStoreModel):
+class BaseVectorizeModel(GenericStoreModel):
     """
-    Base Classifier Model
+    Base Classifier Model Tf-IDF
     """
 
     def __init__(self, **kwargs):
@@ -59,6 +57,7 @@ class BaseTfIdf(GenericStoreModel):
         self.show_results = kwargs.get('show_results', False)
         self.data = kwargs.get('data', FINAL_PATH)
         self.param_grid = kwargs.get('param_grid', {})
+        self.model = None
         self.X = None
         self.Y = None
 
@@ -108,13 +107,13 @@ class BaseTfIdf(GenericStoreModel):
             try:
                 # Grid search do Cross Validation with 5 folds
                 grid.fit(self.X, self.Y)
-            except TypeError:
+            except (TypeError, ValueError):
                 grid.fit(self.X.toarray(), self.Y)
             # Store best model
             self.model = grid.best_estimator_
-            self._store_model()
+            self._store_model(obj=self)
         else:
-            self._read_model()
+            self.model = self._read_model()
         # accuracy score on the training data
         if self.show_results:
             self._show_results(X_train, X_test, Y_train, Y_test)

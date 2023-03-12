@@ -3,18 +3,18 @@ Generic Model Classification - sklearn implementation
 """
 
 from . import BASE_PATH
-from model.base import BaseTfIdf
+from model.base import BaseVectorizeModel
 from sklearn.naive_bayes import GaussianNB
 from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.linear_model import LogisticRegression
 
-FOREST_PATH = BASE_PATH + "/randomforest.pyc"
-LOGISTIC_PATH = BASE_PATH + "/logistic.pyc"
-BAYES_PATH = BASE_PATH + "/bayes.pyc"
-TREE_PATH = BASE_PATH + "/dtree.pyc"
-SVM_PATH = BASE_PATH + "/svm.pyc"
+FOREST_PATH = BASE_PATH + "randomforest.model"
+LOGISTIC_PATH = BASE_PATH + "logistic.model"
+BAYES_PATH = BASE_PATH + "bayes.model"
+TREE_PATH = BASE_PATH + "dtree.model"
+SVM_PATH = BASE_PATH + "svm.model"
 
 SVM_ARGS = {
     "model_type": SVC,
@@ -54,12 +54,11 @@ TREE_ARGS = {
 BAYES_ARGS = {
     "model_type": GaussianNB,
     "store_path": BAYES_PATH,
-    "param_grid": {
-    }
+    "param_grid": {}
 }
 
 AVAILABLE_MODELS = {
-    # "BAYES": BAYES_ARGS,
+    "BAYES": BAYES_ARGS,
     "SVM": SVM_ARGS,
     "DECISION_TREE": TREE_ARGS,
     "RANDOM_FOREST": RF_ARGS,
@@ -67,7 +66,7 @@ AVAILABLE_MODELS = {
 }
 
 
-class GenericModelConstructor(BaseTfIdf):
+class GenericModelConstructor(BaseVectorizeModel):
     """
     Generic Classification Model
     """
@@ -84,4 +83,4 @@ class GenericModelConstructor(BaseTfIdf):
     def __init__(self, model_name: str, show_results: bool = False):
         _args = self.get_model_args(model=model_name)
         _args['show_results'] = show_results
-        BaseTfIdf.__init__(self, **_args)
+        BaseVectorizeModel.__init__(self, **_args)

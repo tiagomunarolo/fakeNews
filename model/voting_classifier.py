@@ -1,14 +1,16 @@
+""""
+Voting Classifier Implementation - SkLearn lib
+"""
 import os
 import pickle
 import pandas as pd
 from sklearn.ensemble import VotingClassifier
 from sklearn.model_selection import train_test_split
-from scrapper.manage_dataset import generate_dataset_for_input
 from model.base import GenericStoreModel
 from . import FINAL_PATH, BASE_PATH as MODELS_PATH
 
 PATH_DEFAULT = './classifier_models.csv'
-VOTING_PATH = f'{MODELS_PATH}/voting.pyc'
+VOTING_PATH = f'{MODELS_PATH}/voting.model'
 
 
 class VotingClassifierModel(GenericStoreModel):
@@ -20,13 +22,14 @@ class VotingClassifierModel(GenericStoreModel):
     def __init__(self):
         super().__init__(store_path=VOTING_PATH)
         self.stored_models = []
+        self.model = None
         self.X = None
         self.Y = None
 
     def _get_models(self):
         """
         Read all saved models in self.stored_models variable
-        All models are binary classes with it's own pre-trained parameters
+        All models are binary classes with its own pre-trained parameters
         """
         files = os.listdir(MODELS_PATH)
         for file_name in files:
@@ -97,7 +100,7 @@ class VotingClassifierModel(GenericStoreModel):
         # Fit model
         self.model.fit(X_train, Y_train)
         # store model
-        self._store_model()
+        self._store_model(obj=self)
 
     def predict_output(self, text_data: str):
         """
@@ -112,6 +115,6 @@ class VotingClassifierModel(GenericStoreModel):
             df[str(mc.model)] = response
         df.dropna(axis=1, inplace=True)
         # get self stored model (to avoid retraining time)
-        self._read_model()
+        self.model = self._read_model()
         response = self.model.predict(df)
         return True if response[0] else False
