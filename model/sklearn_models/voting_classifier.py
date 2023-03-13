@@ -4,11 +4,11 @@ Voting Classifier Implementation - SkLearn lib
 import os
 import pickle
 import pandas as pd
-from sklearn.ensemble import VotingClassifier
 from sklearn.model_selection import train_test_split
-from . import DATASET_PATH, MODELS_PATH, GenericStoreModel
+from sklearn.ensemble import VotingClassifier
+from . import DATASET_PATH, MODELS_PATH, GenericStoreModel, PROJECT_PATH
 
-DATA_MODELS_CSV = f'{DATASET_PATH}/classifier_models.csv'
+DATA_MODELS_CSV = f'{PROJECT_PATH}/dataset/classifier_models.csv'
 VOTING_MODEL = 'voting.model'
 VOTING_PATH = f'{MODELS_PATH}{VOTING_MODEL}'
 
@@ -31,9 +31,9 @@ class VotingClassifierModel(GenericStoreModel):
         Read all saved models in self.stored_models variable
         All models are binary classes with its own pre-trained parameters
         """
-        files = os.listdir(DATASET_PATH)
+        files = os.listdir(MODELS_PATH)
         for file_name in files:
-            _file = DATASET_PATH + file_name
+            _file = MODELS_PATH + file_name
             if file_name == VOTING_MODEL or not _file.endswith('.model'):
                 continue
             with open(_file, 'rb') as model_class:
@@ -90,15 +90,15 @@ class VotingClassifierModel(GenericStoreModel):
             return self
         # Build a new model
         self.model = VotingClassifier(estimators=estimators)
-        # Split dataset for training and test
+        # split dataset
         X_train, X_test, Y_train, Y_test = train_test_split(
             self.X,
             self.Y,
             test_size=0.2,
             stratify=self.Y,
-            random_state=2)
+            random_state=42)
         # Fit model
-        self.model.fit(X_train, Y_train)
+        self.model.fit(X=X_train, y=Y_train)
         # store model
         self._store_model(obj=self)
 
