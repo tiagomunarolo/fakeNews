@@ -80,16 +80,14 @@ def remove_stop_words(content, remove_words):
     return txt
 
 
-def generate_dataset_for_input(text):
+def generate_dataset_for_input(df: pd.DataFrame):
     """
-    Get preprocessed text
-    :param text: str
+    Get text and remove stopwords + data cleansing.
+    :param df: pd.Dataframe
     :return:
     """
     remove_words = get_synonyms(words_to_check=REMOVE_DATA)
-    df = pd.DataFrame(data={"TEXT": [text]})
-    df['TEXT'] = df['TEXT'].apply(lambda x: remove_stop_words(content=x, remove_words=remove_words))
-    return df.TEXT
+    return df.TEXT.apply(lambda x: remove_stop_words(content=x, remove_words=remove_words))
 
 
 def create_final_dataset():

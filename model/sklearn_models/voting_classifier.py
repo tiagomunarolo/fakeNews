@@ -6,6 +6,7 @@ import pickle
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import VotingClassifier
+from scrapper.manage_dataset import generate_dataset_for_input
 from . import DATASET_PATH, MODELS_PATH, GenericStoreModel, PROJECT_PATH
 
 DATA_MODELS_CSV = f'{PROJECT_PATH}/dataset/classifier_models.csv'
@@ -102,9 +103,9 @@ class VotingClassifierModel(GenericStoreModel):
         # store model
         self._store_model(obj=self)
 
-    def predict_output(self, text_data: str):
+    def predict_output(self, text_df: pd.DataFrame):
         """
-        :parameter: text_data: str: Text to be predicted
+        :parameter: text_df: Text list to be predicted
         Generates prediction, given a text
         """
         if not self.stored_models:
@@ -112,11 +113,14 @@ class VotingClassifierModel(GenericStoreModel):
         if not self.model:
             self.model = self._read_model()
 
+        X = generate_dataset_for_input(df=text_df)
         columns = [str(x.model) for x in self.stored_models]
         df = pd.DataFrame(columns=columns)
         for m_class in self.stored_models:
-            response = m_class.predict_output(
-                text_data=text_data, model_=m_class)
-            df[str(m_class.model)] = [response]
-        response = self.model.predict(df)
-        return True if response[0] else False
+            _X = m_class.tf_vector.transform(X)
+            try:
+                response = m_class.model.predict(_X)
+            except (TypeError, ValueError):
+                response = m_class.model.predict(_X.toarray())
+            df[str(m_class.model)] = response
+        return self.model.predict(X=df)
