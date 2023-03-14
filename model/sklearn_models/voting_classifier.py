@@ -90,6 +90,8 @@ class VotingClassifierModel(GenericStoreModel):
         """
         Fit model
         """
+        if not force:
+            return self
         # Get stored models
         self._get_stored_models()
         if not self._read_dataset():
@@ -97,8 +99,6 @@ class VotingClassifierModel(GenericStoreModel):
             self._build_dataset()
         # Manage estimators
         estimators = [(str(x.model), x.model) for x in self.stored_models]
-        if not force:
-            return self
         # Build a new model
         self.model = VotingClassifier(estimators=estimators)
         # split dataset
