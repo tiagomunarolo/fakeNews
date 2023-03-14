@@ -40,36 +40,12 @@ class VotingClassifierModel(GenericStoreModel):
             with open(_file, 'rb') as model_class:
                 self.stored_models.append(pickle.load(file=model_class))
 
-    def _get_dataset(self, path=DATA_MODELS_CSV):
+    def _read_dataset(self, path=DATA_MODELS_CSV) -> bool:
         """
-        Reads dataset, otherwise create it
-        X => prediction variables
-        Y => Target
-        X is composed by predictions of previous pre-trained models
-        :param path: str
+        Reads Training Dataset
         """
         if not os.path.exists(path):
-            """"
-            If not exists yet, get original dataset to generate 
-            prediction dataset. It's composed by text as input and 
-            Boolean as a target
-            """
-            data = pd.read_csv(DATASET_PATH, index_col=0)
-            columns = ['LABEL']
-            columns += [str(x.model) for x in self.stored_models]
-            df = pd.DataFrame(columns=columns)
-            df['LABEL'] = data.LABEL
-            for class_m in self.stored_models:
-                tf_idf = class_m.tf_vector
-                X = tf_idf.transform(data.TEXT)
-                try:
-                    prediction = class_m.model.predict(X)
-                except TypeError:
-                    prediction = class_m.model.predict(X.toarray())
-                # store predictions to a new dataset
-                df[str(class_m.model)] = prediction
-            # Stores dataset
-            df.to_csv(path_or_buf=path, index_label=False)
+            return False
 
         data = pd.read_csv(path, index_col=0)
         # X is composed for predictions of all pre-trained models
@@ -77,14 +53,48 @@ class VotingClassifierModel(GenericStoreModel):
         # Y is the target variable (bool)
         self.Y = data.LABEL
 
+        return True
+
+    def _build_dataset(self, path=DATA_MODELS_CSV):
+        """
+        Reads dataset, otherwise create it
+        X => prediction variables
+        Y => Target
+        X is composed by predictions of previous pre-trained models
+        :param path: str
+        """
+        """"
+        If not exists yet, get original dataset to generate 
+        prediction dataset. It's composed by text as input and 
+        Boolean as a target
+        """
+        data = pd.read_csv(DATASET_PATH, index_col=0)
+        columns = ['LABEL']
+        columns += [str(x.model) for x in self.stored_models]
+        df = pd.DataFrame(columns=columns)
+        df['LABEL'] = data.LABEL
+        for class_m in self.stored_models:
+            tf_idf = class_m.tf_vector
+            X = tf_idf.transform(data.TEXT)
+            try:
+                prediction = class_m.model.predict(X)
+            except TypeError:
+                prediction = class_m.model.predict(X.toarray())
+            # store predictions to a new dataset
+            df[str(class_m.model)] = prediction
+        # Stores dataset
+        df.to_csv(path_or_buf=path, index_label=False)
+        self._read_dataset()
+
     def fit_model(self, force=False):
         """
         Fit model
         """
         # Get stored models
         self._get_stored_models()
-        # Get dataset
-        self._get_dataset()
+        if not self._read_dataset():
+            # Get dataset
+            self._build_dataset()
         # Manage estimators
         estimators = [(str(x.model), x.model) for x in self.stored_models]
         if not force:
