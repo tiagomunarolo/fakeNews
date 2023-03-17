@@ -118,7 +118,7 @@ class BaseTermFrequencyModel(GenericStoreModel):
 
         logger.info(msg=f"Fitting model {self.model_name}")
         X, self.tf_vector = self.vectorize_data(X=X)
-        estimator = self.model_type(probability=True, random_state=42)
+        estimator = self.model_type(random_state=42)
         grid = GridSearchCV(estimator=estimator,
                             param_grid=self.param_grid,
                             cv=5,
