@@ -103,14 +103,18 @@ class GenericStoreModel:
         with open(self.store_path, 'wb') as file:
             pickle.dump(obj=obj, file=file)
 
-    def _read_model(self):
+    def _read_model(self, sk_model_only=True):
         """
         Read model from ./models dir
         """
         if not self.path_exists:
             raise FileNotFoundError(f'{self.store_path} does not exists')
         with open(self.store_path, 'rb') as file:
-            return pickle.load(file=file).model
+            class_model = pickle.load(file=file)
+            if sk_model_only:
+                return class_model.model
+            else:
+                return class_model
 
 
 class BaseVectorizeModel(GenericStoreModel):
@@ -128,30 +132,35 @@ class BaseVectorizeModel(GenericStoreModel):
         super().__init__(store_path=kwargs['store_path'])
         self.model_type = kwargs['model_type']
         self.show_results = kwargs.get('show_results', False)
-        self.data = kwargs.get('data', DATASET_PATH)
+        self.data_path = kwargs.get('data', DATASET_PATH)
         self.param_grid = kwargs.get('param_grid', {})
+        self.model_name = kwargs['model_name']
         self.model = None
+        self.tf_vector = None
         self.X = None
         self.Y = None
 
-    def _read_dataset(self):
+    @staticmethod
+    def read_dataset(path: str | None = None):
         """
         Reads Training Dataset
         """
-        if not os.path.exists(self.data):
-            raise FileNotFoundError(f'{self.data} not found!')
+        if not os.path.exists(path):
+            raise FileNotFoundError(f'{path} not found!')
 
-        data = pd.read_csv(self.data, index_col=0)
-        self.X = data.TEXT
-        self.Y = data.LABEL
+        data = pd.read_csv(path, index_col=0)
+        X = data.TEXT
+        Y = data.LABEL
+        return X, Y
 
-    def _vectorize_data(self):
+    @staticmethod
+    def vectorize_data(X):
         """
-        Vectorize dataset
+        Vectorize dataset and returns X and tf-idf object
         """
-        self.tf_vector = TfidfVectorizer()
-        self.tf_vector.fit(self.X)
-        self.X = self.tf_vector.transform(self.X)
+        tf_vector = TfidfVectorizer()
+        tf_vector.fit(X)
+        return tf_vector.transform(X), tf_vector
 
     def _fit_model(self):
         """
@@ -162,15 +171,18 @@ class BaseVectorizeModel(GenericStoreModel):
                             param_grid=self.param_grid,
                             cv=5,
                             n_jobs=-1,
-                            verbose=5)
+                            verbose=5, )
         try:
             # Grid search do Cross Validation with 5 folds
             grid.fit(self.X, self.Y)
         except (TypeError, ValueError):
             grid.fit(self.X.toarray(), self.Y)
-            # Store best model
-            self.model = grid.best_estimator_
-            self._store_model(obj=self)
+        # select best model
+        self.model = grid.best_estimator_
+        # clear data before store
+        self.X, self.Y, self.model_type = (None, None, None)
+        # Store model
+        self._store_model(obj=self)
 
     def fit_model(self, force=False):
         """
@@ -181,8 +193,8 @@ class BaseVectorizeModel(GenericStoreModel):
             self.model = self._read_model()
             return
 
-        self._read_dataset()
-        self._vectorize_data()
+        self.X, self.Y = self.read_dataset(path=self.data_path)
+        self.X, self.tf_vector = self.vectorize_data(X=self.X)
         self._fit_model()
 
 
@@ -203,4 +215,5 @@ class GenericModelConstructor(BaseVectorizeModel):
     def __init__(self, model_name: str, show_results: bool = False):
         _args = self.get_model_args(model=model_name)
         _args['show_results'] = show_results
+        _args['model_name'] = model_name
         BaseVectorizeModel.__init__(self, **_args)

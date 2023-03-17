@@ -42,9 +42,10 @@ if FIRST_RUN:
 
 stemmer = SnowballStemmer(language="portuguese")
 STOP_WORDS = stopwords.words('portuguese')
-REMOVE_DATA = ['verdade', 'falso', 'fake',
-               'fato', 'true', 'mentira',
-               'verificar', 'checar']
+TRUE_WORDS = ['verdade', 'fato', 'real', 'veridico', 'exato', 'checar', 'verificar']
+FALSE_WORDS = ['falsear', 'fake', 'mentir', 'fraudar', 'inverdade',
+               'fingir', 'enganar', 'ocultar', 'inventar']
+REMOVE_DATA = TRUE_WORDS + FALSE_WORDS
 
 
 def get_synonyms(words_to_check: list):
@@ -58,7 +59,7 @@ def get_synonyms(words_to_check: list):
         words = wordnet.synsets(remove, lang="por")
         for word in words:
             for syn in word.lemmas(lang="por"):
-                synonyms.append(syn.name())
+                synonyms.append(str(syn.name()).lower())
     return set(synonyms)
 
 
@@ -70,9 +71,9 @@ def remove_stop_words(content, remove_words):
     :return:
     """
     # remove special characters
-    txt = re.sub('http://\S+|https://\S+', ' ', content)  # Remove URLs
+    txt = re.sub(r'http://\S+|https://\S+', ' ', content)  # Remove URLs
     txt = normalize('NFKD', txt).encode('ASCII', 'ignore').decode('ASCII')
-    txt = re.sub('[^a-zA-Z]', ' ', txt)
+    txt = re.sub(r'[^a-zA-Z]', ' ', txt)
     txt = re.sub(r'[^\w+]', ' ', txt).split()
     txt = [stemmer.stem(w) for w in txt if w not in remove_words and not w.isnumeric()]
     txt = [x for x in txt if len(x) > 1]  # Remove residuals
@@ -94,51 +95,75 @@ def create_final_dataset():
     """
     Build final dataset to be analyzed
     """
+    print("Creating Final Dataset")
     # Get a list of words to be removed (avoid bias)
     remove_words = get_synonyms(words_to_check=REMOVE_DATA)
-
+    # columns_used
+    columns_used = ['TEXT', 'TEXT_SIZE', 'LABEL', 'SOURCE']
     """STEP 1: G1 dataset"""
     # Reads g1.csv (G1 Fato ou Fake source)
-    df = pd.read_csv(G1_PATH, index_col=0).reset_index(drop=True)
+    df_g1 = pd.read_csv(G1_PATH, index_col=0).reset_index(drop=True)
     # Drop entries that can be dubious (either false or true)
-    df_drop = df['RESUMO'].apply(lambda x: "fato" in x.lower() and "fake" in x.lower())
-    df = df[~df_drop]
+    df_keep = df_g1['RESUMO'].apply(lambda x: x.lower().startswith("é #fato") or x.lower().startswith("é #fake"))
+    df_g1 = df_g1[df_keep]
     # Label data according to it's content
-    df['LABEL'] = df['RESUMO'].apply(lambda x: False if "#FAKE" in x else True)
-    df['TEXT'] = df.apply(lambda x: f"{x['RESUMO']} {x['TEXTO']}", axis=1)
-    df = df[['TEXT', 'LABEL']]
-
+    df_g1_aux = pd.DataFrame()
+    df_g1_aux2 = pd.DataFrame()
+    df_g1_aux['TEXT'] = df_g1['RESUMO']
+    df_g1_aux['LABEL'] = df_g1['RESUMO'].apply(lambda x: False if "#fake" in x.lower() else True)
+    df_g1_aux2['TEXT'] = df_g1['TEXTO']
+    df_g1_aux2['LABEL'] = True
+    df_g1 = pd.concat([df_g1_aux, df_g1_aux2])
+    df_g1['TEXT_SIZE'] = df_g1.TEXT.apply(lambda x: len(x.split()))
+    df_g1['SOURCE'] = 'G1'
+    df_g1 = df_g1[columns_used]
+    print("G1 Dataset Done")
     """STEP 2: Aos fatos dataset"""
     # Reads aos_fatos.csv (Aos fatos data source)
-    df2 = pd.read_csv(AOS_FATOS_PATH, index_col=0).reset_index(drop=True)
-    df2.rename(columns={"TEXTO": "TEXT"}, inplace=True)
-    df2 = df2[['TEXT', 'LABEL']]
+    # df_aos_fatos = pd.read_csv(AOS_FATOS_PATH, index_col=0).reset_index(drop=True)
+    # df_aos_fatos.rename(columns={"TEXTO": "TEXT"}, inplace=True)
+    # df_aos_fatos['TEXT_SIZE'] = df_aos_fatos.TEXT.apply(lambda x: len(x.split()))
+    # df_aos_fatos = df_aos_fatos[columns_used]
 
     """STEP 3: Fake corpus dataset"""
-    df3 = pd.read_csv(FAKE_CORPUS, index_col=0).reset_index(drop=True)
-    df3.rename(columns={"label": "LABEL", "preprocessed_news": "TEXT"}, inplace=True)
-    df3.LABEL = df3.LABEL.replace({"fake": False, "true": True})
+    df_corpus = pd.read_csv(FAKE_CORPUS, index_col=0).reset_index(drop=True)
+    df_corpus.rename(columns={"label": "LABEL", "preprocessed_news": "TEXT"}, inplace=True)
+    df_corpus.LABEL = df_corpus.LABEL.replace({"fake": False, "true": True})
+    df_corpus['TEXT_SIZE'] = df_corpus.TEXT.apply(lambda x: len(x.split()))
+    df_corpus['SOURCE'] = 'CORPUS_BR'
+    df_corpus = df_corpus[columns_used]
+    print("Fake.BR Corpus Dataset Done")
 
     """STEP 4: Kaggle rumor election dataset"""
-    df4 = pd.read_csv(RUMOR_PATH, index_col=0, sep=";").reset_index(drop=True)
-    df4.rename(columns={"texto": "TEXT", "rotulo": "LABEL"}, inplace=True)
-    df4.LABEL = df4.LABEL.replace({"FALSO": False, "VERDADE": True})
-    df4 = df4[['TEXT', 'LABEL']]
+    df_rumor = pd.read_csv(RUMOR_PATH, index_col=0, sep=";").reset_index(drop=True)
+    df_rumor.rename(columns={"texto": "TEXT", "rotulo": "LABEL"}, inplace=True)
+    df_rumor.LABEL = df_rumor.LABEL.replace({"FALSO": False, "VERDADE": True})
+    df_rumor['TEXT_SIZE'] = df_rumor.TEXT.apply(lambda x: len(x.split()))
+    df_rumor['SOURCE'] = 'KAGGLE_RUMOR'
+    df_rumor = df_rumor[columns_used]
+    print("Kaggle Rumor Dataset Done")
 
     """STEP 5: Chat GPT Fake data set"""
-    df5 = pd.read_csv(GPT_PATH, index_col=0).reset_index(drop=True)
-    df5 = df5[['TEXT', 'LABEL']]
+    df_gpt = pd.read_csv(GPT_PATH, index_col=0).reset_index(drop=True)
+    df_gpt = df_gpt[['TEXT', 'LABEL']]
+    df_gpt['TEXT_SIZE'] = df_gpt.TEXT.apply(lambda x: len(x.split()))
+    df_gpt['SOURCE'] = 'CHAT_GPT'
+    df_gpt = df_gpt[columns_used]
+    print("ChatGPT Dataset Done")
 
     # concat dataframes
-    final_df = pd.concat([df, df2, df3, df4, df5])
+    final_df = pd.concat([df_g1, df_corpus, df_rumor, df_gpt])
     final_df.TEXT = final_df.TEXT.str.lower()
     final_df.reset_index(inplace=True, drop=True)
-    final_df.to_csv(path_or_buf=UNIFIED_DATASET)
-
+    final_df.to_csv(path_or_buf=UNIFIED_DATASET, index_label=False)
+    print("Final Unified Dataset Done")
     remove_words = STOP_WORDS + list(remove_words)
-    final_df['TEXT'] = final_df['TEXT'].apply(
-        lambda x: remove_stop_words(content=x, remove_words=remove_words))
+    for ix, data in final_df.iterrows():
+        text = data['TEXT']
+        final_df.at[ix, 'TEXT'] = remove_stop_words(content=text, remove_words=remove_words)
+        if int(ix) and int(ix) % 100 == 0:
+            print(f"FINAL_DATASET: {ix}/{len(final_df)} processed")
+    remove_lower_false = final_df[(~final_df.LABEL) & (final_df.TEXT_SIZE <= 15)]
+    final_df = final_df[~final_df.index.isin(remove_lower_false.index)]
     final_df.drop_duplicates(inplace=True)
-    # Remove texts with text size >=500 or lower than 15
-    final_df = final_df[~final_df.TEXT.apply(lambda x: len(x.split()) <= 15 or len(x.split()) > 500)]
-    final_df.to_csv(path_or_buf=FINAL_PATH)
+    final_df.to_csv(path_or_buf=FINAL_PATH, index_label=False)
