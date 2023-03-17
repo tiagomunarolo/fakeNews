@@ -1,17 +1,20 @@
 """
 __init__ file
 """
-from .base import GenericStoreModel, BaseVectorizeModel, \
-    AVAILABLE_MODELS, GenericModelConstructor, PROJECT_PATH, MODELS_PATH, DATASET_PATH
-from .voting_classifier import VotingClassifierModel
+import os
+from .base import GenericStoreModel, BaseTermFrequencyModel, \
+    AVAILABLE_MODELS, GenericModelConstructor
+
+PROJECT_PATH = os.getenv('PROJECT_PATH', None)
+
+assert PROJECT_PATH, "PROJECT_PATH ENV MUST BE SET"
+MODELS_PATH = f"{PROJECT_PATH}/model/models/"
 
 __all__ = [
     'GenericStoreModel',
-    'BaseVectorizeModel',
+    'BaseTermFrequencyModel',
     'AVAILABLE_MODELS',
     'GenericModelConstructor',
     'PROJECT_PATH',
-    'DATASET_PATH',
     'MODELS_PATH',
-    'VotingClassifierModel'
 ]

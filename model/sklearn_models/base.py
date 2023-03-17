@@ -8,77 +8,31 @@ import pickle
 from dataclasses import dataclass
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.model_selection import GridSearchCV
-from sklearn.naive_bayes import GaussianNB
-from sklearn.svm import SVC
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.linear_model import LogisticRegression
+from model.sklearn_models.utils import AVAILABLE_MODELS
+from typing import Tuple
 import pandas as pd
 import warnings
+import logging
 
 warnings.filterwarnings(action="ignore", category=FutureWarning)
 warnings.filterwarnings(action="ignore", category=UserWarning)
 
-PROJECT_PATH = os.getenv('PROJECT_PATH', None)
 
-assert PROJECT_PATH, "PROJECT_PATH ENV MUST BE SET"
-MODELS_PATH = f"{PROJECT_PATH}/model/models/"
-DATASET_PATH = f"{PROJECT_PATH}/dataset/final_dataset.csv"
+def get_xy_from_dataset(path: str | None = None) -> Tuple[pd.Series, pd.Series]:
+    """
+    Reads Training Dataset
+    """
+    if not path or not os.path.exists(path):
+        raise FileNotFoundError(f'{path} not found!')
 
-FOREST_PATH = MODELS_PATH + "randomforest.model"
-LOGISTIC_PATH = MODELS_PATH + "logistic.model"
-BAYES_PATH = MODELS_PATH + "bayes.model"
-TREE_PATH = MODELS_PATH + "dtree.model"
-SVM_PATH = MODELS_PATH + "svm.model"
+    data = pd.read_csv(path, index_col=0)
+    X = data.TEXT
+    Y = data.LABEL
+    return X, Y
 
-SVM_ARGS = {
-    "model_type": SVC,
-    "store_path": SVM_PATH,
-    "param_grid": {
-        'C': [0.1, 1, 10],
-        'kernel': ['linear', 'rbf', 'sigmoid', ]
-    }
-}
 
-RF_ARGS = {
-    "model_type": RandomForestClassifier,
-    "store_path": FOREST_PATH,
-    "param_grid": {
-        'n_estimators': [100, 250, 500],
-        'max_features': ['sqrt', 'log2'],
-        'criterion': ["gini", "entropy", "log_loss"]
-    }
-}
-
-LR_ARGS = {
-    "model_type": LogisticRegression,
-    "store_path": LOGISTIC_PATH,
-    "param_grid": {
-        'penalty': ['l1', 'l2'],
-        'C': [0.001, 0.1, 1, 10, 100],
-        'solver': ['liblinear', ]
-    }
-}
-
-TREE_ARGS = {
-    "model_type": DecisionTreeClassifier,
-    "store_path": TREE_PATH,
-    "param_grid": {'criterion': ['gini', 'entropy']}
-}
-
-BAYES_ARGS = {
-    "model_type": GaussianNB,
-    "store_path": BAYES_PATH,
-    "param_grid": {}
-}
-
-AVAILABLE_MODELS = {
-    "BAYES": BAYES_ARGS,
-    "SVM": SVM_ARGS,
-    "DECISION_TREE": TREE_ARGS,
-    "RANDOM_FOREST": RF_ARGS,
-    "LINEAR": LR_ARGS,
-}
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(name="BASE_MODEL")
 
 
 @dataclass(slots=True)
@@ -96,28 +50,31 @@ class GenericStoreModel:
         """
         return os.path.exists(self.store_path)
 
-    def _store_model(self, obj):
+    def _store_model(self, obj) -> None:
         """
         Save model to ./models dir
         """
         with open(self.store_path, 'wb') as file:
+            logger.info(msg=f"STORING MODEL: {self.store_path}")
             pickle.dump(obj=obj, file=file)
 
-    def _read_model(self, sk_model_only=True):
+    def _read_model(self, model_only: bool = True):
         """
-        Read model from ./models dir
+        Read GenericModel from ./models dir
+        :type model_only: bool: if True return sklearn model stored only
         """
+        logger.info(msg=f"READING MODEL: {self.store_path}")
         if not self.path_exists:
             raise FileNotFoundError(f'{self.store_path} does not exists')
         with open(self.store_path, 'rb') as file:
             class_model = pickle.load(file=file)
-            if sk_model_only:
+            if model_only:
                 return class_model.model
             else:
                 return class_model
 
 
-class BaseVectorizeModel(GenericStoreModel):
+class BaseTermFrequencyModel(GenericStoreModel):
     """
     Base Classifier Model Tf-IDF
     """
@@ -132,73 +89,51 @@ class BaseVectorizeModel(GenericStoreModel):
         super().__init__(store_path=kwargs['store_path'])
         self.model_type = kwargs['model_type']
         self.show_results = kwargs.get('show_results', False)
-        self.data_path = kwargs.get('data', DATASET_PATH)
         self.param_grid = kwargs.get('param_grid', {})
         self.model_name = kwargs['model_name']
         self.model = None
         self.tf_vector = None
-        self.X = None
-        self.Y = None
 
     @staticmethod
-    def read_dataset(path: str | None = None):
-        """
-        Reads Training Dataset
-        """
-        if not os.path.exists(path):
-            raise FileNotFoundError(f'{path} not found!')
-
-        data = pd.read_csv(path, index_col=0)
-        X = data.TEXT
-        Y = data.LABEL
-        return X, Y
-
-    @staticmethod
-    def vectorize_data(X):
+    def vectorize_data(X: any):
         """
         Vectorize dataset and returns X and tf-idf object
         """
+        logger.info(msg="vectorize_data started")
         tf_vector = TfidfVectorizer()
         tf_vector.fit(X)
+        logger.info(msg="vectorize_data finished")
         return tf_vector.transform(X), tf_vector
 
-    def _fit_model(self):
+    def fit(self, X: any, y: any, force: bool = False) -> None:
         """
-        Fit Generic provided model using grid search for
-        best parameters
-        """
-        grid = GridSearchCV(estimator=self.model_type(),
-                            param_grid=self.param_grid,
-                            cv=5,
-                            n_jobs=-1,
-                            verbose=5, )
-        try:
-            # Grid search do Cross Validation with 5 folds
-            grid.fit(self.X, self.Y)
-        except (TypeError, ValueError):
-            grid.fit(self.X.toarray(), self.Y)
-        # select best model
-        self.model = grid.best_estimator_
-        # clear data before store
-        self.X, self.Y, self.model_type = (None, None, None)
-        # Store model
-        self._store_model(obj=self)
-
-    def fit_model(self, force=False):
-        """
-        Fit provided model and output its results
+        Fit Generic provided model with GridSearchCV
+        :param y: Array like
+        :param X: Array like
         :type force: bool: Force fit model if it no longer exists
         """
         if not force and self.path_exists:
             self.model = self._read_model()
             return
 
-        self.X, self.Y = self.read_dataset(path=self.data_path)
-        self.X, self.tf_vector = self.vectorize_data(X=self.X)
-        self._fit_model()
+        logger.info(msg=f"Fitting model {self.model_name}")
+        X, self.tf_vector = self.vectorize_data(X=X)
+        estimator = self.model_type(probability=True, random_state=42)
+        grid = GridSearchCV(estimator=estimator,
+                            param_grid=self.param_grid,
+                            cv=5,
+                            n_jobs=-1,
+                            verbose=5, )
+
+        grid.fit(X=X, y=y)
+        logger.info(msg=f"Model fitted {self.model_name}")
+        # select best model
+        self.model = grid.best_estimator_
+        # Store model
+        self._store_model(obj=self)
 
 
-class GenericModelConstructor(BaseVectorizeModel):
+class GenericModelConstructor(BaseTermFrequencyModel):
     """
     Generic Classification Model
     """
@@ -216,4 +151,4 @@ class GenericModelConstructor(BaseVectorizeModel):
         _args = self.get_model_args(model=model_name)
         _args['show_results'] = show_results
         _args['model_name'] = model_name
-        BaseVectorizeModel.__init__(self, **_args)
+        BaseTermFrequencyModel.__init__(self, **_args)
