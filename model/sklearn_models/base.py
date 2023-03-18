@@ -8,7 +8,7 @@ import pickle
 from dataclasses import dataclass
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.model_selection import GridSearchCV
-from model.sklearn_models.utils import AVAILABLE_MODELS
+from model.sklearn_models.model_utils import AVAILABLE_MODELS
 from typing import Tuple
 import pandas as pd
 import warnings
@@ -122,7 +122,6 @@ class BaseTermFrequencyModel(GenericStoreModel):
         grid = GridSearchCV(estimator=estimator,
                             param_grid=self.param_grid,
                             cv=5,
-                            n_jobs=-1,
                             verbose=5, )
 
         grid.fit(X=X, y=y)

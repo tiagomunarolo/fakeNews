@@ -2,19 +2,16 @@
 __init__ file
 """
 import os
-from .base import GenericStoreModel, BaseTermFrequencyModel, \
-    AVAILABLE_MODELS, GenericModelConstructor
 
-PROJECT_PATH = os.getenv('PROJECT_PATH', None)
+__PROJECT_NAME__ = 'fakenews'
+__FILE_PATH__ = os.path.abspath(__file__)
+ROOT_PATH = __FILE_PATH__.split(__PROJECT_NAME__)[0] + __PROJECT_NAME__
 
-assert PROJECT_PATH, "PROJECT_PATH ENV MUST BE SET"
-MODELS_PATH = f"{PROJECT_PATH}/model/models/"
+MODELS_PATH = f"{ROOT_PATH}/model/models/"
+DATASET_PATH = f"{ROOT_PATH}/dataset/"
 
 __all__ = [
-    'GenericStoreModel',
-    'BaseTermFrequencyModel',
-    'AVAILABLE_MODELS',
-    'GenericModelConstructor',
-    'PROJECT_PATH',
+    'ROOT_PATH',
     'MODELS_PATH',
+    'DATASET_PATH'
 ]

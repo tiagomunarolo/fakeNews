@@ -1,20 +1,23 @@
-import os
+"""
+Defines models arguments and its hyper parameters
+For now:
+1- sklearn.ensemble.RandomForestClassifier
+2- sklearn.tree.DecisionTreeClassifier
+3- sklearn.linear_model.LogisticRegression
+4- sklearn.ensemble.GradientBoostingClassifier
+5- sklearn.svm.SVC
+"""
 import numpy as np
-from sklearn.naive_bayes import GaussianNB
 from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.linear_model import LogisticRegression
-
-PROJECT_PATH = os.getenv('PROJECT_PATH', None)
-
-assert PROJECT_PATH, "PROJECT_PATH ENV MUST BE SET"
-MODELS_PATH = f"{PROJECT_PATH}/model/models/"
-DATASET_PATH = f"{PROJECT_PATH}/dataset/final_dataset.csv"
+from sklearn.ensemble import GradientBoostingClassifier
+from . import MODELS_PATH
 
 FOREST_PATH = MODELS_PATH + "randomforest.model"
 LOGISTIC_PATH = MODELS_PATH + "logistic.model"
-BAYES_PATH = MODELS_PATH + "bayes.model"
+XG_PATH = MODELS_PATH + "xgboost.model"
 TREE_PATH = MODELS_PATH + "dtree.model"
 SVM_PATH = MODELS_PATH + "svm.model"
 
@@ -23,7 +26,7 @@ SVM_ARGS = {
     "store_path": SVM_PATH,
     "param_grid": {
         'C': [0.01, 0.1, 1, 10, 100],
-        'kernel': ['linear', 'poly', 'rbf', 'sigmoid', 'precomputed']
+        'kernel': ['linear', 'poly', 'rbf', 'sigmoid', ]
     }
 }
 
@@ -57,16 +60,19 @@ TREE_ARGS = {
     }
 }
 
-BAYES_ARGS = {
-    "model_type": GaussianNB,
-    "store_path": BAYES_PATH,
-    "param_grid": {}
+XGBOOST_ARGS = {
+    "model_type": GradientBoostingClassifier,
+    "store_path": XG_PATH,
+    "param_grid": {
+        "learning_rate": np.arange(0.01, 1, 0.01),
+        "n_estimators": np.arange(10, 200, 10)
+    }
 }
 
 AVAILABLE_MODELS = {
-    # "BAYES": BAYES_ARGS,
     "LINEAR": LR_ARGS,
     "DECISION_TREE": TREE_ARGS,
     "RANDOM_FOREST": RF_ARGS,
     "SVM": SVM_ARGS,
+    "XGBOOST": XGBOOST_ARGS
 }
