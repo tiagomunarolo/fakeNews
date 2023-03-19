@@ -5,16 +5,15 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from scrapper.manage_dataset import generate_dataset_for_input
 from mlxtend.classifier import EnsembleVoteClassifier
-from model.sklearn_models.base import BaseTermFrequencyModel as Base
-from model.sklearn_models.base import GenericStoreModel, GenericModelConstructor
+from model.sklearn_models.base import BaseTermFrequency as Base
+from model.sklearn_models.base import ObjectStore, GenericModelConstructor
+from model.logger import get_logger
 from . import MODELS_PATH
-import logging
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(name="VOTING_MODEL")
+logger = get_logger(__file__)
 
 
-class VotingClassifierModel(GenericStoreModel):
+class VotingClassifier(ObjectStore):
     """
     Voting Classifier Model -
     Classifies data among stack of other classifications

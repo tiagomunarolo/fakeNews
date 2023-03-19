@@ -5,40 +5,23 @@ SKLEARN implementations
 import os.path
 import os
 import pickle
+import warnings
 from dataclasses import dataclass
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.model_selection import GridSearchCV
 from model.sklearn_models.model_utils import AVAILABLE_MODELS
-from typing import Tuple
-import pandas as pd
-import warnings
-import logging
+from model.logger import get_logger
 
 warnings.filterwarnings(action="ignore", category=FutureWarning)
 warnings.filterwarnings(action="ignore", category=UserWarning)
 
-
-def get_xy_from_dataset(path: str | None = None) -> Tuple[pd.Series, pd.Series]:
-    """
-    Reads Training Dataset
-    """
-    if not path or not os.path.exists(path):
-        raise FileNotFoundError(f'{path} not found!')
-
-    data = pd.read_csv(path, index_col=0)
-    X = data.TEXT
-    Y = data.LABEL
-    return X, Y
-
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(name="BASE_MODEL")
+logger = get_logger(__file__)
 
 
 @dataclass(slots=True)
-class GenericStoreModel:
+class ObjectStore:
     """
-    Generic Store Model
+    Generic Object Store Class
     """
     store_path: str
 
@@ -55,15 +38,17 @@ class GenericStoreModel:
         Save model to ./models dir
         """
         with open(self.store_path, 'wb') as file:
-            logger.info(msg=f"STORING MODEL: {self.store_path}")
+            logger.info(msg=f"STORING_MODEL: {self.store_path}")
             pickle.dump(obj=obj, file=file)
+            logger.info(msg=f"MODEL_STORED: {self.store_path}")
 
     def _read_model(self, model_only: bool = True):
         """
-        Read GenericModel from ./models dir
-        :type model_only: bool: if True return sklearn model stored only
+        Reads Stored model from ./models dir
+        :type model_only: bool: If True returns Classifier only. Otherwise, its
+        superclass
         """
-        logger.info(msg=f"READING MODEL: {self.store_path}")
+        logger.info(msg=f"READING_MODEL: {self.store_path}")
         if not self.path_exists:
             raise FileNotFoundError(f'{self.store_path} does not exists')
         with open(self.store_path, 'rb') as file:
@@ -74,7 +59,7 @@ class GenericStoreModel:
                 return class_model
 
 
-class BaseTermFrequencyModel(GenericStoreModel):
+class BaseTermFrequency(ObjectStore):
     """
     Base Classifier Model Tf-IDF
     """
@@ -132,9 +117,9 @@ class BaseTermFrequencyModel(GenericStoreModel):
         self._store_model(obj=self)
 
 
-class GenericModelConstructor(BaseTermFrequencyModel):
+class GenericModelConstructor(BaseTermFrequency):
     """
-    Generic Classification Model
+    Generic Classification Class Constructor
     """
 
     @staticmethod
@@ -150,4 +135,4 @@ class GenericModelConstructor(BaseTermFrequencyModel):
         _args = self.get_model_args(model=model_name)
         _args['show_results'] = show_results
         _args['model_name'] = model_name
-        BaseTermFrequencyModel.__init__(self, **_args)
+        BaseTermFrequency.__init__(self, **_args)

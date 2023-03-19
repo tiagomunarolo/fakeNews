@@ -7,12 +7,15 @@ For now:
 4- sklearn.ensemble.GradientBoostingClassifier
 5- sklearn.svm.SVC
 """
+import os
 import numpy as np
+import pandas as pd
 from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import GradientBoostingClassifier
+from typing import Tuple
 from . import MODELS_PATH
 
 FOREST_PATH = MODELS_PATH + "randomforest.model"
@@ -64,8 +67,8 @@ XGBOOST_ARGS = {
     "model_type": GradientBoostingClassifier,
     "store_path": XG_PATH,
     "param_grid": {
-        "learning_rate": np.arange(0.01, 1, 0.01),
-        "n_estimators": np.arange(10, 200, 10)
+        "learning_rate": [0.1, 0.25, 0.5, 0.75, 1],
+        "n_estimators": [10, 100, 150, 200]
     }
 }
 
@@ -76,3 +79,16 @@ AVAILABLE_MODELS = {
     "SVM": SVM_ARGS,
     "XGBOOST": XGBOOST_ARGS
 }
+
+
+def get_xy_from_dataset(path: str | None = None) -> Tuple[pd.Series, pd.Series]:
+    """
+    Reads Training Dataset
+    """
+    if not path or not os.path.exists(path):
+        raise FileNotFoundError(f'{path} not found!')
+
+    data = pd.read_csv(path, index_col=0)
+    X = data.TEXT
+    Y = data.LABEL
+    return X, Y
