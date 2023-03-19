@@ -4,7 +4,7 @@ import random
 import pandas as pd
 import time
 
-from scrapper import DATA_PATH
+from scrapper import DATASET_PATH
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
@@ -21,8 +21,8 @@ def generate_fake_data():
     """
     Generates fake data using ChatGPT
     """
-    if os.path.exists(path=f"{DATA_PATH}/chatgpt.csv"):
-        df = pd.read_csv(f"{DATA_PATH}/chatgpt.csv")
+    if os.path.exists(path=f"{DATASET_PATH}/chatgpt.csv"):
+        df = pd.read_csv(f"{DATASET_PATH}/chatgpt.csv")
     else:
         df = pd.DataFrame(columns=['TEXT', 'LABEL'])
 

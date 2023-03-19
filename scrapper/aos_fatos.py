@@ -1,11 +1,11 @@
 from scrapper.driver import Driver
 from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup, element
-from . import DATA_PATH
+from . import DATASET_PATH
 import pandas as pd
 import warnings
 
-AOS_FATOS_PATH = f"{DATA_PATH}/aos_fatos.csv"
+AOS_FATOS_PATH = f"{DATASET_PATH}/aos_fatos.csv"
 HTML_PARSER = 'html.parser'
 TRUE_PAGE = "https://www.aosfatos.org/noticias/checamos/?page={}"
 READ_MORE = {'class': ['entry-read-more-inline']}

@@ -1,6 +1,6 @@
-import os
+"""
+__init__ declarations
+"""
+from model import DATASET_PATH
 
-PROJECT_PATH = os.getenv('PROJECT_PATH', None)
-
-assert PROJECT_PATH, "PROJECT_PATH ENV MUST BE SET"
-DATA_PATH = f"{PROJECT_PATH}/dataset"
+__all__ = ['DATASET_PATH']

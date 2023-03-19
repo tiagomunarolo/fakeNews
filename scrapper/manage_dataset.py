@@ -21,19 +21,19 @@ from nltk.corpus import stopwords
 from unicodedata import normalize
 from nltk.corpus import wordnet
 from nltk.stem import SnowballStemmer
-from scrapper import DATA_PATH
+from . import DATASET_PATH
 
 FIRST_RUN = False
 
-FINAL_PATH = f"{DATA_PATH}/final_dataset.csv"
-UNIFIED_DATASET = f"{DATA_PATH}/unified_dataset.csv"
+FINAL_PATH = f"{DATASET_PATH}/final_dataset.csv"
+UNIFIED_DATASET = f"{DATASET_PATH}/unified_dataset.csv"
 
 # PATH OF DATASETS
-G1_PATH = f"{DATA_PATH}/g1.csv"
-AOS_FATOS_PATH = f"{DATA_PATH}/aos_fatos.csv"
-FAKE_CORPUS = f"{DATA_PATH}/fake_corpus.csv"
-RUMOR_PATH = f"{DATA_PATH}/rumor.csv"
-GPT_PATH = f"{DATA_PATH}/chatgpt.csv"
+G1_PATH = f"{DATASET_PATH}/g1.csv"
+AOS_FATOS_PATH = f"{DATASET_PATH}/aos_fatos.csv"
+FAKE_CORPUS = f"{DATASET_PATH}/fake_corpus.csv"
+RUMOR_PATH = f"{DATASET_PATH}/rumor.csv"
+GPT_PATH = f"{DATASET_PATH}/chatgpt.csv"
 
 if FIRST_RUN:
     nltk.download('stopwords')

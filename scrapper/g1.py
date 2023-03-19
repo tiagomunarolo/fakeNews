@@ -2,7 +2,7 @@ from selenium.webdriver.common.by import By
 from scrapper.driver import Driver
 from bs4 import BeautifulSoup
 import pandas as pd
-from scrapper import DATA_PATH
+from . import DATASET_PATH
 
 SCROLL = "window.scrollTo(0, document.body.scrollHeight);"
 HTML_PARSER = 'html.parser'
@@ -27,7 +27,7 @@ def build_dataset(html):
         df2 = pd.DataFrame(data=data)
         df = pd.concat([df, df2])
 
-    df.to_csv(path_or_buf=f"{DATA_PATH}/g1.csv")
+    df.to_csv(path_or_buf=f"{DATASET_PATH}/g1.csv")
 
 
 def get_g1_page():
