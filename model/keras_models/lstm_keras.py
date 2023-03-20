@@ -105,5 +105,5 @@ class KerasLstm(Store):
             self.max_len = _.max_len
 
         X = self._tokenize(X)
-        X = tf.keras.preprocessing.sequence.pad_sequences(X, maxlen=512)
+        X = tf.keras.preprocessing.sequence.pad_sequences(X, maxlen=self.max_len)
         return (self.model.predict(X) > 0.5).astype("bool")
