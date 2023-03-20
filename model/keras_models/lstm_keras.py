@@ -15,9 +15,9 @@ class KerasLstm(Store):
     """
     __name__ = 'LSTM'
     __MAX_FEATURES__ = 30000  # max words in data dictionary
-    __LSTM_LAYER_1 = 512
-    __LSTM_LAYER_2 = 256
-    __LSTM_LAYER_3 = 128
+    __LSTM_LAYER_1__ = 512
+    __LSTM_LAYER_2__ = 256
+    __LSTM_LAYER_3__ = 128
 
     def __init__(self, store_path: str):
         super().__init__(store_path=store_path)
@@ -48,13 +48,13 @@ class KerasLstm(Store):
         # Embed each integer in a 128-dimensional vector
         x = Embedding(
             input_dim=self.__MAX_FEATURES__,
-            output_dim=self.__LSTM_LAYER_1)(inputs)
+            output_dim=self.__LSTM_LAYER_1__)(inputs)
         # Add 3 bidirectional LSTMs
-        x = Bidirectional(LSTM(units=self.__LSTM_LAYER_1,
+        x = Bidirectional(LSTM(units=self.__LSTM_LAYER_1__,
                                return_sequences=True))(x)
-        x = Bidirectional(LSTM(units=self.__LSTM_LAYER_2,
+        x = Bidirectional(LSTM(units=self.__LSTM_LAYER_2__,
                                return_sequences=True))(x)
-        x = Bidirectional(LSTM(units=self.__LSTM_LAYER_3))(x)
+        x = Bidirectional(LSTM(units=self.__LSTM_LAYER_3__))(x)
         # Add a classifier
         outputs = Dense(1, activation="sigmoid")(x)
         model = tf.keras.Model(inputs, outputs)
