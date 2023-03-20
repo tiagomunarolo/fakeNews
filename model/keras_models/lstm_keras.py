@@ -76,7 +76,7 @@ class KerasLstm(Store):
         """
         self.max_len = max_len
         X_train, X_test, y_train, y_test = train_test_split(
-            X, y, stratify=y, random_state=42)
+            X, y, stratify=y, random_state=42, train_size=0.1)
 
         X_train = self._tokenize(X_train)
         X_test = self._tokenize(X_test)
