@@ -8,7 +8,7 @@ from mlxtend.classifier import EnsembleVoteClassifier
 from model.sklearn_models.base import BaseTermFrequency as Base
 from model.sklearn_models.base import ObjectStore, GenericModelConstructor
 from model.logger import get_logger
-from . import MODELS_PATH
+from model.sklearn_models import MODELS_PATH
 
 logger = get_logger(__file__)
 
@@ -63,14 +63,13 @@ class VotingClassifier(ObjectStore):
         for estimator in self.estimators.keys():
             gm = GenericModelConstructor(model_name=estimator)
             gm.fit(X=X, y=y, force=fit_base_estimators)
-            estimators_.append((estimator, gm.model))
+            estimators_.append(gm.model)
         logger.info(msg="Estimator models fitted")
 
         # Build a new model
         X, self.tf_vector = Base.vectorize_data(X=X)
         self.model = EnsembleVoteClassifier(
             clfs=estimators_,
-            voting='soft',
             fit_base_estimators=False,
             verbose=2
         )

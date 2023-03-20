@@ -9,7 +9,7 @@ import warnings
 from dataclasses import dataclass
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.model_selection import GridSearchCV
-from model.sklearn_models.model_utils import AVAILABLE_MODELS
+from model.model_utils import AVAILABLE_MODELS
 from model.logger import get_logger
 
 warnings.filterwarnings(action="ignore", category=FutureWarning)

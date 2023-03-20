@@ -16,7 +16,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import GradientBoostingClassifier
 from typing import Tuple
-from . import MODELS_PATH
+from model.sklearn_models import MODELS_PATH
 
 FOREST_PATH = MODELS_PATH + "randomforest.model"
 LOGISTIC_PATH = MODELS_PATH + "logistic.model"

@@ -39,9 +39,11 @@ class KerasLstm(Store):
         :param shape:
         """
         # define the model
+        # input [n x (max_len)]
+        # n = number of rows in dataset, max_len = pad size of vector, default=2048
         model = tf.keras.Sequential([
             Input(name='inputs', shape=[shape[1]]),
-            Embedding(input_dim=len(self.tokenizer.word_index),
+            Embedding(input_dim=len(self.tokenizer.word_index) + 1,
                       output_dim=128),
             Bidirectional(LSTM(128, return_sequences=True)),
             Bidirectional(LSTM(64)),
@@ -57,7 +59,7 @@ class KerasLstm(Store):
         model.summary()
         self.model = model
 
-    def fit(self, X: any, y: any, max_len: int = 2048, epochs: int = 10) -> None:
+    def fit(self, X: any, y: any, max_len: int = 512, epochs: int = 10) -> None:
         """
         Fit tf.keras Model
         :param epochs:  int : number of epochs
