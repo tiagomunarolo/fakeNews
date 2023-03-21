@@ -18,14 +18,13 @@ class Driver(webdriver.Chrome):
         option = Options()
         option.headless = headless
         self.url = url
-
         super().__init__(
             executable_path=ChromeDriverManager().install(),
             options=option)
 
-    def get_page(self, sleep_time=5):
+    def get_page(self, sleep_time=5) -> None:
         """
-        Retrives hrml document form URL
+        Retrieves hrml document form URL
         :param sleep_time:
         """
         self.get(self.url)

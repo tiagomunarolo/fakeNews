@@ -8,6 +8,9 @@ from sklearn.model_selection import train_test_split
 from model.sklearn_models.base import ObjectStore as Store
 from typing import List
 
+gpu = len(tf.config.list_physical_devices('GPU')) > 0
+print("GPU is", "available" if gpu else "NOT AVAILABLE")
+
 
 class KerasLstm(Store):
     """
