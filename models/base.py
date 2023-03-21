@@ -9,8 +9,7 @@ import warnings
 from dataclasses import dataclass
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.model_selection import GridSearchCV
-from model.model_utils import AVAILABLE_MODELS
-from model.logger import get_logger
+from models.logger import get_logger
 
 warnings.filterwarnings(action="ignore", category=FutureWarning)
 warnings.filterwarnings(action="ignore", category=UserWarning)
@@ -18,9 +17,8 @@ warnings.filterwarnings(action="ignore", category=UserWarning)
 logger = get_logger(__file__)
 
 __all__ = [
-    'GenericModelConstructor',
     'ObjectStore',
-    'BaseTermFrequency'
+    'TermFrequencyClassifier'
 ]
 
 
@@ -39,18 +37,18 @@ class ObjectStore:
         """
         return os.path.exists(self.store_path)
 
-    def _store_model(self, obj) -> None:
+    def store_model(self, obj) -> None:
         """
-        Save model to ./models dir
+        Save models to ./models dir
         """
         with open(self.store_path, 'wb') as file:
             logger.info(msg=f"STORING_MODEL: {self.store_path}")
             pickle.dump(obj=obj, file=file)
             logger.info(msg=f"MODEL_STORED: {self.store_path}")
 
-    def _read_model(self, model_only: bool = True):
+    def read_model(self, model_only: bool = True):
         """
-        Reads Stored model from ./models dir
+        Reads Stored models from ./models dir
         :type model_only: bool: If True returns Classifier only. Otherwise, its
         superclass
         """
@@ -65,7 +63,7 @@ class ObjectStore:
                 return class_model
 
 
-class BaseTermFrequency(ObjectStore):
+class TermFrequencyClassifier(ObjectStore):
     """
     Base Classifier Model Tf-IDF
     """
@@ -73,8 +71,8 @@ class BaseTermFrequency(ObjectStore):
     def __init__(self, **kwargs):
         """
         Mandatory args:
-        - model_type: str: sklearn model to be fit
-        - store_path: str:  Where model should be stored or read
+        - model_type: str: sklearn models to be fit
+        - store_path: str:  Where models should be stored or read
         :param kwargs:
         """
         super().__init__(store_path=kwargs['store_path'])
@@ -98,16 +96,16 @@ class BaseTermFrequency(ObjectStore):
 
     def fit(self, X: any, y: any, force: bool = False) -> None:
         """
-        Fit Generic provided model with GridSearchCV
-        :param y: Array like
-        :param X: Array like
-        :type force: bool: Force fit model if it no longer exists
+        Fit Generic provided models with GridSearchCV
+        :param y: Array like, Output
+        :param X: Array like, Input
+        :type force: bool: Force fit models if it no longer exists
         """
         if not force and self.path_exists:
-            self.model = self._read_model()
+            self.model = self.read_model()
             return
 
-        logger.info(msg=f"Fitting model {self.model_name}")
+        logger.info(msg=f"Fitting models {self.model_name}")
         X, self.tf_vector = self.vectorize_data(X=X)
         estimator = self.model_type(random_state=42)
         grid = GridSearchCV(estimator=estimator,
@@ -117,28 +115,7 @@ class BaseTermFrequency(ObjectStore):
 
         grid.fit(X=X, y=y)
         logger.info(msg=f"Model fitted {self.model_name}")
-        # select best model
+        # select best models
         self.model = grid.best_estimator_
-        # Store model
-        self._store_model(obj=self)
-
-
-class GenericModelConstructor(BaseTermFrequency):
-    """
-    Generic Classification Class Constructor
-    """
-
-    @staticmethod
-    def get_model_args(model: str) -> dict:
-        """
-        Return constructor arguments for the generic model
-        :param model: model key to get its parameters
-        :return:
-        """
-        return AVAILABLE_MODELS.get(model)
-
-    def __init__(self, model_name: str, show_results: bool = False):
-        _args = self.get_model_args(model=model_name)
-        _args['show_results'] = show_results
-        _args['model_name'] = model_name
-        BaseTermFrequency.__init__(self, **_args)
+        # Store models
+        self.store_model(obj=self)

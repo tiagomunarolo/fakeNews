@@ -21,7 +21,7 @@ from unicodedata import normalize
 from nltk.corpus import wordnet
 from nltk.stem import SnowballStemmer
 from crawler import DATASET_PATH
-from model.logger import get_logger
+from models.logger import get_logger
 
 FINAL_PATH = f"{DATASET_PATH}/preprocessed.csv"
 ORIGINAL_DATASET = f"{DATASET_PATH}/original_dataset.csv"
