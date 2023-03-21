@@ -3,7 +3,7 @@ Voting Classifier Implementation - SkLearn lib
 """
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from scrapper.dataset_builder import generate_dataset_for_input
+from crawler.dataset_builder import generate_dataset_for_input
 from mlxtend.classifier import EnsembleVoteClassifier
 from model.sklearn_models.base import BaseTermFrequency as Base
 from model.sklearn_models.base import ObjectStore, GenericModelConstructor
@@ -11,6 +11,8 @@ from model.logger import get_logger
 from model.sklearn_models import MODELS_PATH
 
 logger = get_logger(__file__)
+
+__all__ = ['VotingClassifier']
 
 
 class VotingClassifier(ObjectStore):

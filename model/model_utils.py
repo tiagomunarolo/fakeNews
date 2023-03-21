@@ -20,8 +20,10 @@ from sklearn.ensemble import GradientBoostingClassifier
 from typing import Tuple
 from model.sklearn_models import MODELS_PATH
 
-FOREST_PATH = MODELS_PATH + "randomforest.model"
-LOGISTIC_PATH = MODELS_PATH + "logistic.model"
+__all__ = ['get_xy_from_dataset', 'AVAILABLE_MODELS']
+
+FOREST_PATH = MODELS_PATH + "rf.model"
+LOGISTIC_PATH = MODELS_PATH + "linear.model"
 XG_PATH = MODELS_PATH + "xgboost.model"
 TREE_PATH = MODELS_PATH + "dtree.model"
 SVM_PATH = MODELS_PATH + "svm.model"
@@ -51,7 +53,9 @@ LR_ARGS = {
     "param_grid": {
         'penalty': ['l1', 'l2', 'elasticnet'],
         'C': [0.001, 0.01, 0.1, 1, 10, 100],
-        'solver': ['lbfgs', 'liblinear', 'newton-cg', 'newton-cholesky', 'sag', 'saga']
+        'solver': ['lbfgs', 'liblinear',
+                   'newton-cg', 'newton-cholesky',
+                   'sag', 'saga']
     }
 }
 
@@ -59,7 +63,7 @@ TREE_ARGS = {
     "model_type": DecisionTreeClassifier,
     "store_path": TREE_PATH,
     "param_grid": {
-        'max_depth': np.arange(2, 100, 2),
+        'max_depth': np.arange(10, 100, 5),
         'criterion': ['gini', 'entropy']
 
     }
@@ -70,7 +74,7 @@ XGBOOST_ARGS = {
     "store_path": XG_PATH,
     "param_grid": {
         "learning_rate": [0.1, 0.25, 0.5, 0.75, 1],
-        "n_estimators": [10, 100, 150, 200]
+        "n_estimators": [50, 100, 150, 200]
     }
 }
 
