@@ -18,7 +18,7 @@ warnings.filterwarnings(action="ignore", category=UserWarning)
 logger = get_logger(__file__)
 
 
-@dataclass(slots=True)
+@dataclass
 class ObjectStore:
     """
     Generic Object Store Class

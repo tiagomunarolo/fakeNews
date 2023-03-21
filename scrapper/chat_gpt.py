@@ -49,12 +49,9 @@ def generate_fake_data():
             df2 = pd.DataFrame(data=data)
             df = pd.concat([df, df2])
             df = df[['TEXT', 'LABEL']]
-            df.to_csv(path_or_buf=f"{DATA_PATH}/chatgpt.csv", index_label=False)
+            df.to_csv(path_or_buf=f"{DATASET_PATH}/chatgpt.csv", index_label=False)
             time.sleep(30)
         except Exception as e:
             print(e)
             break
     print("FINALIZADO")
-
-
-generate_fake_data()

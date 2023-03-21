@@ -3,7 +3,7 @@ __init__ file
 """
 import os
 
-__PROJECT_NAME__ = 'fakenews'
+__PROJECT_NAME__ = 'fakeNews'
 __FILE_PATH__ = os.path.abspath(__file__)
 ROOT_PATH = __FILE_PATH__.split(__PROJECT_NAME__)[0] + __PROJECT_NAME__
 

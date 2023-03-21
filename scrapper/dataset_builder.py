@@ -21,9 +21,7 @@ from nltk.corpus import stopwords
 from unicodedata import normalize
 from nltk.corpus import wordnet
 from nltk.stem import SnowballStemmer
-from . import DATASET_PATH
-
-FIRST_RUN = False
+from scrapper import DATASET_PATH
 
 FINAL_PATH = f"{DATASET_PATH}/final_dataset.csv"
 UNIFIED_DATASET = f"{DATASET_PATH}/unified_dataset.csv"
@@ -35,10 +33,9 @@ FAKE_CORPUS = f"{DATASET_PATH}/fake_corpus.csv"
 RUMOR_PATH = f"{DATASET_PATH}/rumor.csv"
 GPT_PATH = f"{DATASET_PATH}/chatgpt.csv"
 
-if FIRST_RUN:
-    nltk.download('stopwords')
-    nltk.download('wordnet')
-    nltk.download('omw-1.4')
+nltk.download('stopwords')
+nltk.download('wordnet')
+nltk.download('omw-1.4')
 
 stemmer = SnowballStemmer(language="portuguese")
 STOP_WORDS = stopwords.words('portuguese')

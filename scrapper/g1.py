@@ -2,7 +2,7 @@ from selenium.webdriver.common.by import By
 from scrapper.driver import Driver
 from bs4 import BeautifulSoup
 import pandas as pd
-from . import DATASET_PATH
+from scrapper import DATASET_PATH
 
 SCROLL = "window.scrollTo(0, document.body.scrollHeight);"
 HTML_PARSER = 'html.parser'

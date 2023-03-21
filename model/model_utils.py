@@ -1,5 +1,5 @@
 """
-Defines models arguments and its hyper parameters
+Defines models arguments and its hyper-parameters
 For now:
 1- sklearn.ensemble.RandomForestClassifier
 2- sklearn.tree.DecisionTreeClassifier
@@ -7,6 +7,8 @@ For now:
 4- sklearn.ensemble.GradientBoostingClassifier
 5- sklearn.svm.SVC
 """
+from __future__ import annotations
+
 import os
 import numpy as np
 import pandas as pd
@@ -81,7 +83,8 @@ AVAILABLE_MODELS = {
 }
 
 
-def get_xy_from_dataset(path: str | None = None) -> Tuple[pd.Series, pd.Series]:
+def get_xy_from_dataset(path: str | None = None) \
+        -> Tuple[pd.Series, pd.Series]:
     """
     Reads Training Dataset
     """

@@ -13,7 +13,7 @@ class KerasLstm(Store):
     """
     Keras LSTM implementation to detect Fake News
     """
-    __name__ = 'LSTM'
+    __MODEL_NAME__ = 'LSTM'
     __MAX_FEATURES__ = 30000  # max words in data dictionary
     __LSTM_LAYER_1__ = 512
     __LSTM_LAYER_2__ = 256
@@ -21,7 +21,7 @@ class KerasLstm(Store):
 
     def __init__(self, store_path: str):
         super().__init__(store_path=store_path)
-        self.model_name = self.__name__
+        self.model_name = self.__MODEL_NAME__
         self.tokenizer = None
         self.model = None
         self.max_len = 512
@@ -40,10 +40,9 @@ class KerasLstm(Store):
 
     def _compile_model(self) -> tf.keras.Model:
         """
-        Compile model according to Sequencial Input and layers below
+        Compile model according Input/Output layers below
         """
         # define the model
-        # input [n x (max_len)]
         inputs = Input(shape=(None,), dtype="int32")
         # Embed each integer in a 128-dimensional vector
         x = Embedding(
@@ -58,7 +57,6 @@ class KerasLstm(Store):
         # Add a classifier
         outputs = Dense(1, activation="sigmoid")(x)
         model = tf.keras.Model(inputs, outputs)
-
         # compile model
         model.compile(loss=tf.keras.losses.BinaryCrossentropy(),
                       optimizer=tf.keras.optimizers.Adam(1e-4),
