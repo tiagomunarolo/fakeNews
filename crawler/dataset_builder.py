@@ -21,7 +21,7 @@ from unicodedata import normalize
 from nltk.corpus import wordnet
 from nltk.stem import SnowballStemmer
 from crawler import DATASET_PATH
-from models.logger import get_logger
+from src.logger import get_logger
 
 FINAL_PATH = f"{DATASET_PATH}/preprocessed.csv"
 ORIGINAL_DATASET = f"{DATASET_PATH}/original_dataset.csv"
@@ -92,14 +92,14 @@ def generate_dataset_for_input(df: pd.DataFrame):
 
 def create_final_dataset():
     """
-    Build final dataset to be analyzed
+    Build final data to be analyzed
     """
     logger.info("Creating Final Dataset")
     # Get a list of words to be removed (avoid bias)
     remove_words = get_synonyms(words_to_check=REMOVE_DATA)
     # columns_used
     columns_used = ['TEXT', 'TEXT_SIZE', 'LABEL', 'SOURCE']
-    """STEP 1: G1 dataset"""
+    """STEP 1: G1 data"""
     # Reads g1.csv (G1 Fato ou Fake source)
     df_g1 = pd.read_csv(G1_PATH, index_col=0).reset_index(drop=True)
     # Drop entries that can be dubious (either false or true)
@@ -118,7 +118,7 @@ def create_final_dataset():
     df_g1 = df_g1[columns_used]
     logger.info("G1 Dataset Done")
 
-    """STEP 2: Fake corpus dataset"""
+    """STEP 2: Fake corpus data"""
     df_corpus = pd.read_csv(FAKE_CORPUS, index_col=0).reset_index(drop=True)
     df_corpus.rename(columns={"label": "LABEL", "preprocessed_news": "TEXT"}, inplace=True)
     df_corpus.LABEL = df_corpus.LABEL.replace({"fake": False, "true": True})
@@ -127,7 +127,7 @@ def create_final_dataset():
     df_corpus = df_corpus[columns_used]
     logger.info("Fake.BR Corpus Dataset Done")
 
-    """STEP 3: Kaggle rumor election dataset"""
+    """STEP 3: Kaggle rumor election data"""
     df_rumor = pd.read_csv(RUMOR_PATH, index_col=0, sep=";").reset_index(drop=True)
     df_rumor.rename(columns={"texto": "TEXT", "rotulo": "LABEL"}, inplace=True)
     df_rumor.LABEL = df_rumor.LABEL.replace({"FALSO": False, "VERDADE": True})

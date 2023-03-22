@@ -12,7 +12,7 @@ G1_PAGE = "https://g1.globo.com/fato-ou-fake/"
 
 def build_dataset(html):
     """
-    Builds G1 dataset
+    Builds G1 data
     :param html: bs4 outer element
     """
     soup = BeautifulSoup(html, HTML_PARSER)

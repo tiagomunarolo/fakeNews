@@ -3,7 +3,7 @@ import openai
 import random
 import pandas as pd
 import time
-from models.logger import get_logger
+from src.logger.logging import get_logger
 from crawler import DATASET_PATH
 
 openai.api_key = os.getenv("OPENAI_API_KEY")

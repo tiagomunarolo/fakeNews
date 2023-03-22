@@ -6,11 +6,11 @@ import os.path
 import os
 import pickle
 import warnings
-import pandas as pd
+from typing import Protocol
 from dataclasses import dataclass
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.model_selection import GridSearchCV
-from models.logger import get_logger
+from src.logger.logging import get_logger
 
 warnings.filterwarnings(action="ignore", category=FutureWarning)
 warnings.filterwarnings(action="ignore", category=UserWarning)
@@ -19,7 +19,7 @@ logger = get_logger(__file__)
 
 __all__ = [
     'ObjectStore',
-    'TermFrequencyClassifier'
+    'TermFrequencyClassifier',
 ]
 
 
@@ -28,37 +28,44 @@ class ObjectStore:
     """
     Generic Object Store Class
     """
-    store_path: str
+    path: str
 
     @property
     def path_exists(self) -> bool:
         """
-        Check if stor_path exists
+        Check if path exists
         :return:
         """
-        return os.path.exists(self.store_path)
+        return os.path.exists(self.path)
 
     def store_model(self, obj) -> None:
         """
         Save models to ./models dir
         """
-        with open(self.store_path, 'wb') as file:
-            logger.info(msg=f"STORING_MODEL: {self.store_path}")
+        with open(self.path, 'wb') as file:
+            logger.info(msg=f"STORING_MODEL: {self.path}")
             pickle.dump(obj=obj, file=file)
-            logger.info(msg=f"MODEL_STORED: {self.store_path}")
+            logger.info(msg=f"MODEL_STORED: {self.path}")
 
     def read_model(self):
         """
-        Reads Stored models from ./models dir
+        Reads Stored model from provided dir
         superclass
         """
-        logger.info(msg=f"READING_MODEL: {self.store_path}")
+        logger.info(msg=f"READING_MODEL: {self.path}")
         if not self.path_exists:
-            raise FileNotFoundError(f'{self.store_path} does not exists')
-        with open(self.store_path, 'rb') as file:
+            raise FileNotFoundError(f'{self.path} does not exists')
+        with open(self.path, 'rb') as file:
             class_model = pickle.load(file=file)
-            logger.info(msg=f"MODEL_LOADED: {self.store_path} COMPLETED")
+            logger.info(msg=f"MODEL_LOADED: {self.path} COMPLETED")
             return class_model
+
+
+class Parameter(Protocol):
+    # HyperParameters of generic model
+    model_name: str
+    model_type: any
+    param_grid: dict
 
 
 class TermFrequencyClassifier(ObjectStore):
@@ -66,25 +73,19 @@ class TermFrequencyClassifier(ObjectStore):
     Base Classifier Model Tf-IDF
     """
 
-    def __init__(self, **kwargs):
-        """
-        Mandatory args:
-        - model_type: str: sklearn models to be fit
-        - store_path: str:  Where models should be stored or read
-        :param kwargs:
-        """
-        super().__init__(store_path=kwargs['store_path'])
-        self.model_type = kwargs['model_type']
-        self.show_results = kwargs.get('show_results', False)
-        self.param_grid = kwargs.get('param_grid', {})
-        self.model_name = kwargs['model_name']
+    def __init__(self, parameter: Parameter):
+        """Init Model"""
+        super().__init__(path=f"./{parameter.model_name}.model")
+        self.model_type = parameter.model_type
+        self.param_grid = parameter.param_grid
+        self.model_name = parameter.model_name
         self.model = None
         self.tf_vector = None
 
     @staticmethod
     def vectorize_data(X: any):
         """
-        Vectorize dataset and returns X and tf-idf object
+        Vectorize data and returns X and tf-idf object
         """
         logger.info(msg="vectorize_data started")
         tf_vector = TfidfVectorizer()
@@ -92,20 +93,20 @@ class TermFrequencyClassifier(ObjectStore):
         logger.info(msg="vectorize_data finished")
         return tf_vector.transform(X), tf_vector
 
-    def fit(self, X: any, y: any, force: bool = False):
+    def fit(self, X: any, y: any, refit: bool = False):
         """
         Fit Generic provided models with GridSearchCV
         :param y: Array like, Output
         :param X: Array like, Input
-        :type force: bool: Force fit models if it no longer exists
+        :type refit: bool: Force fit models if it no longer exists
         """
-        if not force and self.path_exists:
+        if not refit and self.path_exists:
             clf = self.read_model()
             self.model = clf.model
             self.tf_vector = clf.tf_vector
             return self
 
-        if not force and (not self.path_exists or None in [X, y]):
+        if not refit and (not self.path_exists or None in [X, y]):
             raise Exception("MODEL_NOT_FITTED_YET")
 
         logger.info(msg=f"Fitting models {self.model_name}")

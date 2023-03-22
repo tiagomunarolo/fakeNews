@@ -5,34 +5,43 @@ import tensorflow as tf
 from keras.layers import Input, Dense, Bidirectional, LSTM, Embedding
 from keras.preprocessing.text import Tokenizer
 from sklearn.model_selection import train_test_split
-from models.base import ObjectStore as Store
+from src.models.sklearn_models import ObjectStore as Os
 from typing import List
-
-from models.logger import get_logger
+from dataclasses import dataclass
+from src.logger.logging import get_logger
 
 logger = get_logger(__file__)
 gpu = len(tf.config.list_physical_devices('GPU')) > 0
 logger.info("GPU is available" if gpu else "NOT AVAILABLE")
 
-__all__ = ['KerasLstm']
+__all__ = ['LstmClassifier']
 
 
-class KerasLstm(Store):
+@dataclass
+class Parameter:
+    # Model parameters
+    max_features: int = 30000  # max words in data dictionary
+    pad_len: int = 512
+    layer_1: int = 256
+    layer_2: int = 128
+    layer_3: int = 56
+    epochs: int = 10
+    batch_size: int = 32
+
+    # model metadata
+    model_name: str = 'lstm'
+
+
+class LstmClassifier(Os):
     """
     Keras LSTM implementation to detect Fake News
     """
-    __MODEL_NAME__ = 'LSTM'
-    __MAX_FEATURES__ = 30000  # max words in data dictionary
-    __LSTM_LAYER_1__ = 256
-    __LSTM_LAYER_2__ = 128
-    __LSTM_LAYER_3__ = 56
 
-    def __init__(self, store_path: str):
-        super().__init__(store_path=store_path)
-        self.model_name = self.__MODEL_NAME__
+    def __init__(self):
+        super().__init__(path=f"./{Parameter.model_name}.model")
+        self.model_name = Parameter.model_name
         self.tokenizer = None
         self.model = None
-        self.max_len = 512
 
     def _tokenize(self, X: any) -> List[list]:
         """
@@ -43,7 +52,7 @@ class KerasLstm(Store):
         logger.info("Tokenizing data for LSTM")
         if not self.tokenizer:
             self.tokenizer = Tokenizer(
-                num_words=self.__MAX_FEATURES__)
+                num_words=Parameter.max_features)
         self.tokenizer.fit_on_texts(X)
         logger.info("Tokenizing data for LSTM...completed")
         return self.tokenizer.texts_to_sequences(X)
@@ -57,14 +66,14 @@ class KerasLstm(Store):
         inputs = Input(shape=(None,), dtype="int32")
         # Embed each integer in a 128-dimensional vector
         x = Embedding(
-            input_dim=self.__MAX_FEATURES__,
-            output_dim=self.__LSTM_LAYER_1__)(inputs)
+            input_dim=Parameter.max_features,
+            output_dim=Parameter.layer_1)(inputs)
         # Add 3 bidirectional LSTMs
-        x = Bidirectional(LSTM(units=self.__LSTM_LAYER_1__,
+        x = Bidirectional(LSTM(units=Parameter.layer_1,
                                return_sequences=True))(x)
-        x = Bidirectional(LSTM(units=self.__LSTM_LAYER_2__,
+        x = Bidirectional(LSTM(units=Parameter.layer_2,
                                return_sequences=True))(x)
-        x = Bidirectional(LSTM(units=self.__LSTM_LAYER_3__))(x)
+        x = Bidirectional(LSTM(units=Parameter.layer_3))(x)
         # Add a classifier
         outputs = Dense(1, activation="sigmoid")(x)
         model = tf.keras.Model(inputs, outputs)
@@ -77,29 +86,39 @@ class KerasLstm(Store):
         logger.info("Model compiled")
         return model
 
-    def fit(self, X: any, y: any, max_len: int = 512, epochs: int = 10) -> None:
+    def __get_model__(self):
+        """
+        Get stored model
+        """
+        _ = self.read_model()
+        self.model = _.model
+        self.tokenizer = _.tokenizer
+
+    def fit(self, X: any, y: any, refit=False) -> None:
         """
         Fit tf.keras Model
-        :param epochs:  int : number of epochs
+        :param refit: bool :: Force model refit
         :param X: Array like, Input
         :param y: Array like, Output
-        :param max_len: int
         """
-        self.max_len = max_len
+        if not refit:
+            self.__get_model__()
+            return self
+
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, stratify=y, random_state=42, train_size=0.1)
 
         X_train = self._tokenize(X_train)
         X_test = self._tokenize(X_test)
-        X_train = tf.keras.preprocessing.sequence.pad_sequences(X_train, maxlen=max_len)
-        X_test = tf.keras.preprocessing.sequence.pad_sequences(X_test, maxlen=max_len)
+        X_train = tf.keras.preprocessing.sequence.pad_sequences(X_train, maxlen=Parameter.pad_len)
+        X_test = tf.keras.preprocessing.sequence.pad_sequences(X_test, maxlen=Parameter.pad_len)
 
         self.model = self._compile_model()
         # Fit models
         self.model.fit(X_train, y_train,
-                       epochs=epochs,
+                       epochs=Parameter.epochs,
                        validation_data=(X_test, y_test),
-                       batch_size=512,
+                       batch_size=32,
                        )
 
         self.store_model(obj=self)
@@ -112,12 +131,9 @@ class KerasLstm(Store):
         """
         logger.info(f"Predicting data: {X.shape}")
         if not self.model:
-            _ = self.read_model(model_only=False)
-            self.model = _.model
-            self.tokenizer = _.tokenizer
-            self.max_len = _.max_len
+            self.__get_model__()
 
         X = self._tokenize(X)
-        X = tf.keras.preprocessing.sequence.pad_sequences(X, maxlen=self.max_len)
+        X = tf.keras.preprocessing.sequence.pad_sequences(X, maxlen=Parameter.pad_len)
         logger.info("Prediction completed")
         return (self.model.predict(X) > 0.5).astype("bool")
