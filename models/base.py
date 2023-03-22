@@ -6,6 +6,7 @@ import os.path
 import os
 import pickle
 import warnings
+import pandas as pd
 from dataclasses import dataclass
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.model_selection import GridSearchCV
@@ -46,10 +47,9 @@ class ObjectStore:
             pickle.dump(obj=obj, file=file)
             logger.info(msg=f"MODEL_STORED: {self.store_path}")
 
-    def read_model(self, model_only: bool = True):
+    def read_model(self):
         """
         Reads Stored models from ./models dir
-        :type model_only: bool: If True returns Classifier only. Otherwise, its
         superclass
         """
         logger.info(msg=f"READING_MODEL: {self.store_path}")
@@ -57,10 +57,8 @@ class ObjectStore:
             raise FileNotFoundError(f'{self.store_path} does not exists')
         with open(self.store_path, 'rb') as file:
             class_model = pickle.load(file=file)
-            if model_only:
-                return class_model.model
-            else:
-                return class_model
+            logger.info(msg=f"MODEL_LOADED: {self.store_path} COMPLETED")
+            return class_model
 
 
 class TermFrequencyClassifier(ObjectStore):
@@ -94,7 +92,7 @@ class TermFrequencyClassifier(ObjectStore):
         logger.info(msg="vectorize_data finished")
         return tf_vector.transform(X), tf_vector
 
-    def fit(self, X: any, y: any, force: bool = False) -> None:
+    def fit(self, X: any, y: any, force: bool = False):
         """
         Fit Generic provided models with GridSearchCV
         :param y: Array like, Output
@@ -102,15 +100,23 @@ class TermFrequencyClassifier(ObjectStore):
         :type force: bool: Force fit models if it no longer exists
         """
         if not force and self.path_exists:
-            self.model = self.read_model()
-            return
+            clf = self.read_model()
+            self.model = clf.model
+            self.tf_vector = clf.tf_vector
+            return self
+
+        if not force and (not self.path_exists or None in [X, y]):
+            raise Exception("MODEL_NOT_FITTED_YET")
 
         logger.info(msg=f"Fitting models {self.model_name}")
         X, self.tf_vector = self.vectorize_data(X=X)
-        estimator = self.model_type(random_state=42)
+        if self.model_name == 'VOTING':
+            estimator = self.model_type
+        else:
+            estimator = self.model_type(random_state=42)
         grid = GridSearchCV(estimator=estimator,
                             param_grid=self.param_grid,
-                            cv=5,
+                            cv=3,
                             verbose=5, )
 
         grid.fit(X=X, y=y)
@@ -119,3 +125,18 @@ class TermFrequencyClassifier(ObjectStore):
         self.model = grid.best_estimator_
         # Store models
         self.store_model(obj=self)
+        return self
+
+    def predict(self, X):
+        """
+        :parameter: X: Text list to be predicted
+        Generates prediction, given a text
+        """
+        from crawler.dataset_builder import generate_dataset_for_input
+        if not self.model:
+            # Restore information stored
+            self.fit(None, None)
+
+        X = generate_dataset_for_input(df=X)
+        X = self.tf_vector.transform(X)
+        return self.model.predict(X=X)
