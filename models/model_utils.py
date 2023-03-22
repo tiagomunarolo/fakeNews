@@ -22,7 +22,7 @@ ALL_MODELS = {
 }
 
 
-def get_xy_from_dataset(path: str | None = None) \
+def get_xy_from_dataset(path: str = "") \
         -> Tuple[pd.Series, pd.Series]:
     """
     Reads Training Dataset
