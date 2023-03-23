@@ -9,6 +9,7 @@ import numpy as np
 @dataclass
 class PytorchParameter:
     # Preprocessing parameters
+    model_name: str = 'cnn'
     seq_len: int = 512
     num_words: int = 30000
 
@@ -55,8 +56,8 @@ class LogisticParameter:
     # Model parameters
     param_grid = dict({
         'penalty': ['l1', 'l2'],
-        'C': [0.001, 0.01, 0.1, 1, 10, 100],
-        'solver': ['lbfgs', 'liblinear', 'saga']
+        'C': np.logspace(-4, 4, 20),
+        'solver': ['liblinear']
     })
 
     # model metadata
@@ -89,3 +90,18 @@ class RandomForestParameter:
     # model metadata
     model_name = 'random_forest'
     model_type = RandomForestClassifier
+
+
+@dataclass
+class KerasParameter:
+    # Model parameters
+    max_features: int = 30000  # max words in data dictionary
+    pad_len: int = 512
+    layer_1: int = 256
+    layer_2: int = 128
+    layer_3: int = 56
+    epochs: int = 10
+    batch_size: int = 64
+
+    # model metadata
+    model_name: str = 'lstm'

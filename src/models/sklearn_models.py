@@ -2,63 +2,17 @@
 Base Classification Model Class - For Generic objects
 SKLEARN implementations
 """
-import os.path
-import os
-import pickle
 import warnings
 from typing import Protocol
-from dataclasses import dataclass
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.model_selection import GridSearchCV
 from src.logger.logging import get_logger
+from src.models.interfaces import Store
 
 warnings.filterwarnings(action="ignore", category=FutureWarning)
 warnings.filterwarnings(action="ignore", category=UserWarning)
 
 logger = get_logger(__file__)
-
-__all__ = [
-    'ObjectStore',
-    'TermFrequencyClassifier',
-]
-
-
-@dataclass
-class ObjectStore:
-    """
-    Generic Object Store Class
-    """
-    path: str
-
-    @property
-    def path_exists(self) -> bool:
-        """
-        Check if path exists
-        :return:
-        """
-        return os.path.exists(self.path)
-
-    def store_model(self, obj) -> None:
-        """
-        Save models to ./models dir
-        """
-        with open(self.path, 'wb') as file:
-            logger.info(msg=f"STORING_MODEL: {self.path}")
-            pickle.dump(obj=obj, file=file)
-            logger.info(msg=f"MODEL_STORED: {self.path}")
-
-    def read_model(self):
-        """
-        Reads Stored model from provided dir
-        superclass
-        """
-        logger.info(msg=f"READING_MODEL: {self.path}")
-        if not self.path_exists:
-            raise FileNotFoundError(f'{self.path} does not exists')
-        with open(self.path, 'rb') as file:
-            class_model = pickle.load(file=file)
-            logger.info(msg=f"MODEL_LOADED: {self.path} COMPLETED")
-            return class_model
 
 
 class Parameter(Protocol):
@@ -68,17 +22,18 @@ class Parameter(Protocol):
     param_grid: dict
 
 
-class TermFrequencyClassifier(ObjectStore):
+class TermFrequencyClassifier:
     """
     Base Classifier Model Tf-IDF
     """
 
-    def __init__(self, parameter: Parameter):
+    def __init__(self, parameters: Parameter, store: Store):
         """Init Model"""
-        super().__init__(path=f"./{parameter.model_name}.model")
-        self.model_type = parameter.model_type
-        self.param_grid = parameter.param_grid
-        self.model_name = parameter.model_name
+        self.store = store
+        self.store.set_path(path=f"./{parameters.model_name}.model")
+        self.model_type = parameters.model_type
+        self.param_grid = parameters.param_grid
+        self.model_name = parameters.model_name
         self.model = None
         self.tf_vector = None
 
@@ -93,21 +48,18 @@ class TermFrequencyClassifier(ObjectStore):
         logger.info(msg="vectorize_data finished")
         return tf_vector.transform(X), tf_vector
 
-    def fit(self, X: any, y: any, refit: bool = False):
+    def fit(self, X: any, y: any, refit: bool = False) -> None:
         """
         Fit Generic provided models with GridSearchCV
         :param y: Array like, Output
         :param X: Array like, Input
         :type refit: bool: Force fit models if it no longer exists
         """
-        if not refit and self.path_exists:
-            clf = self.read_model()
-            self.model = clf.model
-            self.tf_vector = clf.tf_vector
-            return self
-
-        if not refit and (not self.path_exists or None in [X, y]):
-            raise Exception("MODEL_NOT_FITTED_YET")
+        if not refit or X is None or y is None:
+            _ = self.store.read_model()
+            self.__class__ = _.__class__
+            self.__dict__ = _.__dict__
+            return
 
         logger.info(msg=f"Fitting models {self.model_name}")
         X, self.tf_vector = self.vectorize_data(X=X)
@@ -125,8 +77,7 @@ class TermFrequencyClassifier(ObjectStore):
         # select best models
         self.model = grid.best_estimator_
         # Store models
-        self.store_model(obj=self)
-        return self
+        self.store.store_model(obj=self)
 
     def predict(self, X):
         """
@@ -135,9 +86,13 @@ class TermFrequencyClassifier(ObjectStore):
         """
         from crawler.dataset_builder import generate_dataset_for_input
         if not self.model:
-            # Restore information stored
-            self.fit(None, None)
+            _ = self.store.read_model()
+            self.__class__ = _.__class__
+            self.__dict__ = _.__dict__
 
         X = generate_dataset_for_input(df=X)
         X = self.tf_vector.transform(X)
         return self.model.predict(X=X)
+
+
+__all__ = ['TermFrequencyClassifier', ]

@@ -7,21 +7,24 @@ from keras.preprocessing.text import Tokenizer
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
 from sklearn.metrics import accuracy_score
+from src.models.interfaces import Store
 
 
 class TextClassifier(nn.Module):
 
-    def __init__(self, param):
+    def __init__(self, parameters, store: Store):
         super(TextClassifier, self).__init__()
         # Parameters regarding text preprocessing
-        self.seq_len: int = param.seq_len
-        self.num_words: int = param.num_words
-        self.embedding_size: int = param.embedding_size
-        self.out_size: int = param.out_size
-        self.stride: int = param.stride
+        self.store = store
+        self.store.set_path(path=f"./{parameters.model_name}.model")
+        self.seq_len: int = parameters.seq_len
+        self.num_words: int = parameters.num_words
+        self.embedding_size: int = parameters.embedding_size
+        self.out_size: int = parameters.out_size
+        self.stride: int = parameters.stride
         self.epochs: int = 2
-        self.batch_size: int = param.batch_size
-        self.learning_rate: float = param.learning_rate
+        self.batch_size: int = parameters.batch_size
+        self.learning_rate: float = parameters.learning_rate
         # Dropout definition
         self.dropout = nn.Dropout(0.25)
         # CNN parameters definition
@@ -124,6 +127,12 @@ class TextClassifier(nn.Module):
 
     def fit(self, X, y, refit=False):
 
+        if not refit or X is None or y is None:
+            _ = self.store.read_model()
+            self.__class__ = _.__class__
+            self.__dict__ = _.__dict__
+            return
+
         tokenizer = Tokenizer(num_words=self.num_words)
         tokenizer.fit_on_texts(X)
         X_train, X_test, y_train, y_test = train_test_split(
@@ -173,8 +182,11 @@ class TextClassifier(nn.Module):
             # Evaluation phase
             test_predictions = self.evaluation(loader_test)
             # Metrics calculation
-            bool_predictions = [x > 0.5 for x in predictions]
-            train_accuary = accuracy_score(y_true=y_train, y_pred=bool_predictions)
-            test_accuracy = accuracy_score(y_true=y_test, y_pred=test_predictions)
+            y_hat_train = [x > 0.5 for x in predictions]
+            y_hat_test = [x > 0.5 for x in test_predictions]
+            train_accuary = accuracy_score(y_true=y_train, y_pred=y_hat_train)
+            test_accuracy = accuracy_score(y_true=y_test, y_pred=y_hat_test)
             print("Epoch: %d, loss: %.5f, Train accuracy: %.5f, Test accuracy: %.5f" % (
                 epoch + 1, loss.item(), train_accuary, test_accuracy))
+
+        self.store.store_model(obj=self)

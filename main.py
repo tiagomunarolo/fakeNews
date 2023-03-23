@@ -5,9 +5,11 @@ from src.parameters import DecisionTreeParameter
 from src.parameters import SVCParameter
 from src.parameters import LogisticParameter
 from src.parameters import XgBoostParameter
+from src.parameters import KerasParameter
 from src.models import LstmClassifier
 from src.models import TermFrequencyClassifier
 from src.models import TextClassifier
+from src.models.interfaces import ObjectStore as Store
 
 
 class ModelNotImplementedError(Exception):
@@ -19,26 +21,28 @@ class Executor:
     @staticmethod
     def run(model, path, refit: bool = False):
         from src.utils import get_xy_from_dataset
+        store = Store()
         X, y = get_xy_from_dataset(path=path)
         if model == 'LOGISTIC':
-            TermFrequencyClassifier(parameter=LogisticParameter). \
+            TermFrequencyClassifier(parameters=LogisticParameter, store=store). \
                 fit(X=X, y=y, refit=refit)
         elif model == 'XGBOOST':
-            TermFrequencyClassifier(parameter=XgBoostParameter). \
+            TermFrequencyClassifier(parameters=XgBoostParameter, store=store). \
                 fit(X=X, y=y, refit=refit)
         elif model == 'RANDOM_FOREST':
-            TermFrequencyClassifier(parameter=RandomForestParameter). \
+            TermFrequencyClassifier(parameters=RandomForestParameter, store=store). \
                 fit(X=X, y=y, refit=refit)
         elif model == 'SVM':
-            TermFrequencyClassifier(parameter=SVCParameter) \
+            TermFrequencyClassifier(parameters=SVCParameter, store=store) \
                 .fit(X=X, y=y, refit=refit)
         elif model == 'DECISION_TREE':
-            TermFrequencyClassifier(parameter=DecisionTreeParameter). \
+            TermFrequencyClassifier(parameters=DecisionTreeParameter, store=store). \
                 fit(X=X, y=y, refit=refit)
         elif model == 'LSTM':
-            LstmClassifier().fit(X=X, y=y, refit=refit)
+            LstmClassifier(parameters=KerasParameter, store=store). \
+                fit(X=X, y=y, refit=refit)
         elif model == 'CNN':
-            TextClassifier(param=PytorchParameter). \
+            TextClassifier(parameters=PytorchParameter, store=store). \
                 fit(X=X, y=y, refit=refit)
         else:
             raise ModelNotImplementedError

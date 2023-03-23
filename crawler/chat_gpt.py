@@ -60,7 +60,8 @@ def build_generic_data(num_news: int = 100000):
             df = df[['TEXT', 'LABEL']]
             df.to_csv(path_or_buf=f"{DATASET_PATH}/chatgpt.csv", index_label=False)
             time.sleep(30)
-        except:
+        except Exception as e:
+            print(e)
             time.sleep(120)
             continue
 
