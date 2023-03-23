@@ -60,9 +60,8 @@ def build_generic_data(num_news: int = 100000):
             df = df[['TEXT', 'LABEL']]
             df.to_csv(path_or_buf=f"{DATASET_PATH}/chatgpt.csv", index_label=False)
             time.sleep(30)
-        except Exception as e:
-            print(e)
-            time.sleep(120)
+        except TimeoutError:
+            time.sleep(60)
             continue
 
         if true_fake == TRUE_CONTENT:

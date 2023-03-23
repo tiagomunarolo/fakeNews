@@ -2,7 +2,7 @@
 This file manages all provided datasets
 
 Generated datasets:
--G1 Fato ou Fake: extracted with bs4 + selenium (aos_fatos.py)
+-G1 Fato ou Fake: extracted with bs4 + selenium
 
 Used datasets:
 - rumor_elections_2018.csv
@@ -28,7 +28,6 @@ ORIGINAL_DATASET = f"{DATASET_PATH}/original_dataset.csv"
 
 # PATH OF DATASETS
 G1_PATH = f"{DATASET_PATH}/g1.csv"
-AOS_FATOS_PATH = f"{DATASET_PATH}/aos_fatos.csv"
 FAKE_CORPUS = f"{DATASET_PATH}/fake_corpus.csv"
 RUMOR_PATH = f"{DATASET_PATH}/rumor.csv"
 GPT_PATH = f"{DATASET_PATH}/chatgpt.csv"
