@@ -155,7 +155,5 @@ def create_final_dataset():
         final_df.at[ix, 'TEXT'] = remove_stop_words(content=text, remove_words=remove_words)
         if int(ix) and int(ix) % 100 == 0:
             logger.info(f"FINAL_DATASET: {int(ix) / len(final_df)} processed")
-    remove_lower_false = final_df[(~final_df.LABEL) & (final_df.TEXT_SIZE <= 15)]
-    final_df = final_df[~final_df.index.isin(remove_lower_false.index)]
     final_df.drop_duplicates(inplace=True)
     final_df.to_csv(path_or_buf=FINAL_PATH, index_label=False)
