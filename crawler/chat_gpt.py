@@ -60,7 +60,7 @@ def build_generic_data(num_news: int = 100000):
             df = df[['TEXT', 'LABEL']]
             df.to_csv(path_or_buf=f"{DATASET_PATH}/chatgpt.csv", index_label=False)
             time.sleep(30)
-        except TimeoutError:
+        except openai.error.OpenAIError:
             time.sleep(60)
             continue
 

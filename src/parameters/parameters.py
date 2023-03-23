@@ -82,7 +82,7 @@ class DecisionTreeParameter:
 class RandomForestParameter:
     # Model parameters
     param_grid = dict({
-        'n_estimators': np.arange(2, 100, 2),
+        'n_estimators': np.arange(10, 200, 10),
         'max_features': ['sqrt', 'log2'],
         'criterion': ["gini", "entropy", "log_loss"]
     })
