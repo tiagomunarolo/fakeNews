@@ -26,7 +26,7 @@ class Parameter:
     layer_2: int = 128
     layer_3: int = 56
     epochs: int = 10
-    batch_size: int = 32
+    batch_size: int = 64
 
     # model metadata
     model_name: str = 'lstm'
@@ -64,7 +64,6 @@ class LstmClassifier(Os):
         # define the models
         logger.info("Compiling model")
         inputs = Input(shape=(None,), dtype="int32")
-        # Embed each integer in a 128-dimensional vector
         x = Embedding(
             input_dim=Parameter.max_features,
             output_dim=Parameter.layer_1)(inputs)
@@ -80,9 +79,7 @@ class LstmClassifier(Os):
         # compile models
         model.compile(loss=tf.keras.losses.BinaryCrossentropy(),
                       optimizer=tf.keras.optimizers.Adam(1e-4),
-                      metrics=['accuracy'],
-                      verbose=0
-                      )
+                      metrics=['accuracy'], )
         logger.info("Model compiled")
         return model
 
@@ -118,7 +115,7 @@ class LstmClassifier(Os):
         self.model.fit(X_train, y_train,
                        epochs=Parameter.epochs,
                        validation_data=(X_test, y_test),
-                       batch_size=32,
+                       batch_size=Parameter.batch_size,
                        )
 
         self.store_model(obj=self)

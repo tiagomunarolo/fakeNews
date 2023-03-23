@@ -17,29 +17,29 @@ class ModelNotImplementedError(Exception):
 class Executor:
 
     @staticmethod
-    def run(model, force: bool = False):
+    def run(model, path, refit: bool = False):
         from src.utils import get_xy_from_dataset
-        X, y = get_xy_from_dataset(path=_data_path_)
+        X, y = get_xy_from_dataset(path=path)
         if model == 'LOGISTIC':
             TermFrequencyClassifier(parameter=LogisticParameter). \
-                fit(X=X, y=y, refit=force)
+                fit(X=X, y=y, refit=refit)
         elif model == 'XGBOOST':
             TermFrequencyClassifier(parameter=XgBoostParameter). \
-                fit(X=X, y=y, refit=force)
+                fit(X=X, y=y, refit=refit)
         elif model == 'RANDOM_FOREST':
             TermFrequencyClassifier(parameter=RandomForestParameter). \
-                fit(X=X, y=y, refit=force)
+                fit(X=X, y=y, refit=refit)
         elif model == 'SVM':
             TermFrequencyClassifier(parameter=SVCParameter) \
-                .fit(X=X, y=y, refit=force)
+                .fit(X=X, y=y, refit=refit)
         elif model == 'DECISION_TREE':
             TermFrequencyClassifier(parameter=DecisionTreeParameter). \
-                fit(X=X, y=y, refit=force)
+                fit(X=X, y=y, refit=refit)
         elif model == 'LSTM':
-            LstmClassifier().fit(X=X, y=y, refit=force)
+            LstmClassifier().fit(X=X, y=y, refit=refit)
         elif model == 'CNN':
             TextClassifier(parameter=PytorchParameter). \
-                fit(X=X, y=y, refit=force)
+                fit(X=X, y=y, refit=refit)
         else:
             raise ModuleNotFoundError()
 
@@ -48,4 +48,4 @@ if __name__ == '__main__':
     _model_ = os.getenv("FAKE_MODEL_TRAIN", "LOGISTIC")
     _data_path_ = os.getenv('DATASET_PATH', "./data/preprocessed.csv")
     _force_ = bool(os.getenv('FORCE', False))
-    Executor.run(model=_model_, force=_force_)
+    Executor.run(model=_model_, path=_data_path_, refit=_force_)
