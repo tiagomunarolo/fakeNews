@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
@@ -26,66 +26,66 @@ class PytorchParameter:
 @dataclass
 class XgBoostParameter:
     # Model parameters
-    param_grid: field(default={
+    param_grid = dict({
         "learning_rate": [0.1, 1, 10],
         "n_estimators": [50, 100, 150, 200]
     })
 
     # model metadata
-    model_name: str = 'xgboost'
-    model_type: str = GradientBoostingClassifier
+    model_name = 'xgboost'
+    model_type = GradientBoostingClassifier
 
 
 @dataclass
 class SVCParameter:
     # Model parameters
-    param_grid: field(default={
+    param_grid = dict({
         'C': [0.01, 0.1, 1, 10, 100],
         'kernel': ['linear', 'poly',
                    'rbf', 'sigmoid', ]
     })
 
     # model metadata
-    model_name: str = 'svm'
-    model_type: str = SVC
+    model_name = 'svm'
+    model_type = SVC
 
 
 @dataclass
 class LogisticParameter:
     # Model parameters
-    param_grid: field(default={
+    param_grid = dict({
         'penalty': ['l1', 'l2'],
         'C': [0.001, 0.01, 0.1, 1, 10, 100],
         'solver': ['lbfgs', 'liblinear', 'saga']
     })
 
     # model metadata
-    model_name: str = 'logistic'
-    model_type: str = LogisticRegression
+    model_name = 'logistic'
+    model_type = LogisticRegression
 
 
 @dataclass
 class DecisionTreeParameter:
     # Model parameters
-    param_grid: field(default={
+    param_grid = dict({
         'max_depth': np.arange(10, 300, 10),
         'criterion': ['gini', 'entropy']
     })
 
     # model metadata
-    model_name: str = 'decision_tree'
-    model_type: str = DecisionTreeClassifier
+    model_name = 'decision_tree'
+    model_type = DecisionTreeClassifier
 
 
 @dataclass
 class RandomForestParameter:
     # Model parameters
-    param_grid: field(default={
+    param_grid = dict({
         'n_estimators': np.arange(2, 100, 2),
         'max_features': ['sqrt', 'log2'],
         'criterion': ["gini", "entropy", "log_loss"]
     })
 
     # model metadata
-    model_name: str = 'random_forest'
-    model_type: str = RandomForestClassifier
+    model_name = 'random_forest'
+    model_type = RandomForestClassifier

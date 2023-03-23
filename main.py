@@ -47,4 +47,5 @@ class Executor:
 if __name__ == '__main__':
     _model_ = os.getenv("FAKE_MODEL_TRAIN", "LOGISTIC")
     _data_path_ = os.getenv('DATASET_PATH', "./data/preprocessed.csv")
-    Executor.run(model=_model_)
+    _force_ = bool(os.getenv('FORCE', False))
+    Executor.run(model=_model_, force=_force_)
