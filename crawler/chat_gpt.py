@@ -25,7 +25,7 @@ FAKE_CONTENT = "Construa uma noticia falsa com mais de {min_}" \
                " e menos de {max_} palavras sobre {news} no Brasil"
 
 
-def build_generic_data(num_news: int = 1000):
+def build_generic_data(num_news: int = 100000):
     """
     Generates fake data using ChatGPT
     """
@@ -44,21 +44,26 @@ def build_generic_data(num_news: int = 1000):
         news_topic = topics[index_topic]
         logger.info(f"Building news({index + 1}): "
                     f"[{min_}/{max_}] about {news_topic} - {label_}")
-        completion = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "user",
-                 "content": true_fake.format(min_=min_, max_=max_, news=news_topic)}
-            ]
-        )
+        try:
+            completion = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "user",
+                     "content": true_fake.format(min_=min_, max_=max_, news=news_topic)}
+                ]
+            )
 
-        text = completion.choices[0].message.content
-        data = {"TEXT": [text], "LABEL": [label_]}
-        df2 = pd.DataFrame(data=data)
-        df = pd.concat([df, df2])
-        df = df[['TEXT', 'LABEL']]
-        df.to_csv(path_or_buf=f"{DATASET_PATH}/chatgpt.csv", index_label=False)
-        time.sleep(30)
+            text = completion.choices[0].message.content
+            data = {"TEXT": [text], "LABEL": [label_]}
+            df2 = pd.DataFrame(data=data)
+            df = pd.concat([df, df2])
+            df = df[['TEXT', 'LABEL']]
+            df.to_csv(path_or_buf=f"{DATASET_PATH}/chatgpt.csv", index_label=False)
+            time.sleep(30)
+        except:
+            time.sleep(120)
+            continue
+
         if true_fake == TRUE_CONTENT:
             true_fake = FAKE_CONTENT
             label_ = False

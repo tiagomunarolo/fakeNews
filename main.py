@@ -38,10 +38,10 @@ class Executor:
         elif model == 'LSTM':
             LstmClassifier().fit(X=X, y=y, refit=refit)
         elif model == 'CNN':
-            TextClassifier(parameter=PytorchParameter). \
+            TextClassifier(param=PytorchParameter). \
                 fit(X=X, y=y, refit=refit)
         else:
-            raise ModuleNotFoundError()
+            raise ModelNotImplementedError
 
 
 if __name__ == '__main__':

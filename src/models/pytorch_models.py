@@ -5,32 +5,31 @@ import torch
 import torch.nn as nn
 from keras.preprocessing.text import Tokenizer
 from sklearn.model_selection import train_test_split
-from src.parameters import PytorchParameter as Parameters
 from torch.utils.data import DataLoader
 from sklearn.metrics import accuracy_score
 
 
 class TextClassifier(nn.Module):
 
-    def __init__(self, parameter):
+    def __init__(self, param):
         super(TextClassifier, self).__init__()
         # Parameters regarding text preprocessing
-        self.seq_len = parameter.seq_len
-        self.num_words = parameter.num_words
-        self.embedding_size = parameter.embedding_size
+        self.seq_len: int = param.seq_len
+        self.num_words: int = param.num_words
+        self.embedding_size: int = param.embedding_size
+        self.out_size: int = param.out_size
+        self.stride: int = param.stride
+        self.epochs: int = 2
+        self.batch_size: int = param.batch_size
+        self.learning_rate: float = param.learning_rate
         # Dropout definition
         self.dropout = nn.Dropout(0.25)
         # CNN parameters definition
-        # Kernel sizes
         self.kernel_1 = 2
         self.kernel_2 = 3
         self.kernel_3 = 4
         self.kernel_4 = 5
         # Output size for each convolution
-        self.out_size = parameter.out_size
-        # Number of strides for each convolution
-        self.stride = parameter.stride
-        # Embedding layer definition
         self.embedding = nn.Embedding(self.num_words + 1, self.embedding_size, padding_idx=0)
         # Convolution layers definition
         self.conv_1 = nn.Conv1d(self.seq_len, self.out_size, self.kernel_1, self.stride)
@@ -87,7 +86,7 @@ class TextClassifier(nn.Module):
 
         # Convolution layer 2 is applied
         x2 = self.conv_2(x)
-        x2 = torch.relu((x2))
+        x2 = torch.relu(x2)
         x2 = self.pool_2(x2)
 
         # Convolution layer 3 is applied
@@ -110,24 +109,22 @@ class TextClassifier(nn.Module):
         out = self.dropout(out)
         # Activation function is applied
         out = torch.sigmoid(out)
-        self.model = out.squeeze()
-        return self.model
+        return out.squeeze()
 
-    def evaluation(self, model, loader_test):
+    def evaluation(self, loader_test):
         # Set the model in evaluation mode
-        model.eval()
+        self.eval()
         predictions = []
 
-        # Starst evaluation phase
         with torch.no_grad():
             for x_batch, y_batch in loader_test:
-                y_pred = model(x_batch)
+                y_pred = self(x_batch)
                 predictions += list(y_pred.detach().numpy())
         return predictions
 
     def fit(self, X, y, refit=False):
 
-        tokenizer = Tokenizer(num_words=Parameters.num_words)
+        tokenizer = Tokenizer(num_words=self.num_words)
         tokenizer.fit_on_texts(X)
         X_train, X_test, y_train, y_test = train_test_split(
             X, y,
@@ -135,11 +132,11 @@ class TextClassifier(nn.Module):
 
         X_train = tokenizer.texts_to_sequences(X_train)
         X_train = tf.keras.preprocessing.sequence.pad_sequences(
-            X_train, maxlen=Parameters.seq_len)
+            X_train, maxlen=self.seq_len)
 
         X_test = tokenizer.texts_to_sequences(X_test)
         X_test = tf.keras.preprocessing.sequence.pad_sequences(
-            X_test, maxlen=Parameters.seq_len)
+            X_test, maxlen=self.seq_len)
 
         X_train = torch.tensor(X_train, )
         X_test = torch.tensor(X_test, )
@@ -147,44 +144,37 @@ class TextClassifier(nn.Module):
         y_test = torch.tensor(y_test.values, )
 
         # Initialize loaders
-        loader_train = DataLoader(list(zip(X_train, y_train)), batch_size=Parameters.batch_size)
-        loader_test = DataLoader(list(zip(X_test, y_test)), batch_size=Parameters.batch_size)
+        loader_train = DataLoader(list(zip(X_train, y_train)), batch_size=self.batch_size)
+        loader_test = DataLoader(list(zip(X_test, y_test)), batch_size=self.batch_size)
 
-        # Define the model
         # Define the loss function and optimizer
         loss_fn = nn.CrossEntropyLoss()
-        optimizer = torch.optim.RMSprop(self.model.parameters(), lr=Parameters.learning_rate)
-
-        for epoch in range(Parameters.epochs):
+        optimizer = torch.optim.RMSprop(self.parameters(), lr=self.learning_rate)
+        for epoch in range(self.epochs):
             # Set model in training model
-            self.model.train()
+            self.train()
             predictions = []
             # Starts batch training
             for x_batch, y_batch in loader_train:
                 y_batch = y_batch.type(torch.FloatTensor)
-
                 # Feed the model
-                y_pred = self.model(x_batch)
-
+                y_pred = self(x_batch)
                 # Loss calculation
                 loss = F.binary_cross_entropy(y_pred, y_batch)
-
                 # Clean gradientes
                 optimizer.zero_grad()
-
                 # Gradients calculation
                 loss.backward()
-
                 # Gradients update
                 optimizer.step()
-
                 # Save predictions
                 predictions += list(y_pred.detach().numpy())
 
             # Evaluation phase
-            test_predictions = self.evaluation(self.model, loader_test)
+            test_predictions = self.evaluation(loader_test)
             # Metrics calculation
-            train_accuary = accuracy_score(y_true=y_train, y_pred=predictions)
+            bool_predictions = [x > 0.5 for x in predictions]
+            train_accuary = accuracy_score(y_true=y_train, y_pred=bool_predictions)
             test_accuracy = accuracy_score(y_true=y_test, y_pred=test_predictions)
             print("Epoch: %d, loss: %.5f, Train accuracy: %.5f, Test accuracy: %.5f" % (
                 epoch + 1, loss.item(), train_accuary, test_accuracy))

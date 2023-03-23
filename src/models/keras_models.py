@@ -119,6 +119,7 @@ class LstmClassifier(Os):
                        )
 
         self.store_model(obj=self)
+        return self
 
     def predict(self, X):
         """
