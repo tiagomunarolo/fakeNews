@@ -174,4 +174,5 @@ class CNNClassifier(nn.Module):
             X = self.vectorize_data(X)
             X = tf.keras.preprocessing.sequence.pad_sequences(X, maxlen=self.seq_len)
             y_hat = self(torch.tensor(X))
-            return list(y_hat.detach().numpy())
+            predictions = [x > 0.5 for x in y_hat.detach().numpy()]
+            return predictions
