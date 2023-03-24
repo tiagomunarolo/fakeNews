@@ -1,4 +1,5 @@
 import os
+import numpy as np
 from src.parameters import PytorchParameter
 from src.parameters import RandomForestParameter
 from src.parameters import DecisionTreeParameter
@@ -32,64 +33,56 @@ class Executor:
     @staticmethod
     def run(model, path, refit: bool = False):
         from src.utils import get_xy_from_dataset
-        store = Store()
         X, y = get_xy_from_dataset(path=path)
         if model == __LOGISTIC__:
-            TFClassifier(parameters=LogisticParameter, store=store). \
+            TFClassifier(parameters=LogisticParameter, store=Store()). \
                 fit(X=X, y=y, refit=refit)
         elif model == __XGBOOST__:
-            TFClassifier(parameters=XgBoostParameter, store=store). \
+            TFClassifier(parameters=XgBoostParameter, store=Store()). \
                 fit(X=X, y=y, refit=refit)
         elif model == __RANDOM_FOREST__:
-            TFClassifier(parameters=RandomForestParameter, store=store). \
+            TFClassifier(parameters=RandomForestParameter, store=Store()). \
                 fit(X=X, y=y, refit=refit)
         elif model == __SVM__:
-            TFClassifier(parameters=SVCParameter, store=store) \
+            TFClassifier(parameters=SVCParameter, store=Store()) \
                 .fit(X=X, y=y, refit=refit)
         elif model == __DECISION_TREE__:
-            TFClassifier(parameters=DecisionTreeParameter, store=store). \
+            TFClassifier(parameters=DecisionTreeParameter, store=Store()). \
                 fit(X=X, y=y, refit=refit)
         elif model == __LSTM__:
-            LstmClassifier(parameters=KerasParameter, store=store). \
+            LstmClassifier(parameters=KerasParameter, store=Store()). \
                 fit(X=X, y=y, refit=refit)
         elif model == __CNN__:
-            CNNClassifier(parameters=PytorchParameter, store=store). \
+            CNNClassifier(parameters=PytorchParameter, store=Store()). \
                 fit(X=X, y=y, refit=refit)
         else:
             raise ModelNotImplementedError
 
 
 class Predictor:
-    ...
 
+    @staticmethod
+    def predict(X: str):
+        if not X:
+            raise PredictionError
+        X = manage_input(text=X)
 
-# TODO Finish class
-# @staticmethod
-# def predict(X: str):
-#     if not X:
-#         raise PredictionError
-#     store = Store()
-#     # X = manage_input(text=x)
-#     # p0 = TFClassifier(parameters=LogisticParameter, store=store).predict(X=X)
-#     # p1 = TFClassifier(parameters=XgBoostParameter, store=store).predict(X=X)
-#     # p2 = TFClassifier(parameters=RandomForestParameter, store=store).predict(X=X)
-#     # p3 = TFClassifier(parameters=SVCParameter, store=store).predict(X=X)
-#     # p4 = TFClassifier(parameters=DecisionTreeParameter, store=store).predict(X=X)
-#     # p5 = LstmClassifier(parameters=KerasParameter, store=store).predict(X=X)
-#     prediction = CNNClassifier(PytorchParameter, store).predict(X=X)
-#     return prediction
-#     # predictions_ = [p0[0], p1[0], p2[0], p3[0], p4[0], p5[0][0]]
-#     # print(predictions_)
-#     # final_response = np.bincount(predictions_).argmax()
-#     # print(final_response)
-#     # print(prediction)
+        p0 = TFClassifier(parameters=LogisticParameter, store=Store()).predict(X=X)
+        p1 = TFClassifier(parameters=XgBoostParameter, store=Store()).predict(X=X)
+        p2 = TFClassifier(parameters=RandomForestParameter, store=Store()).predict(X=X)
+        p3 = TFClassifier(parameters=SVCParameter, store=Store()).predict(X=X)
+        p4 = TFClassifier(parameters=DecisionTreeParameter, store=Store()).predict(X=X)
+        p5 = LstmClassifier(parameters=KerasParameter, store=Store()).predict(X=X)
+        p6 = CNNClassifier(parameters=PytorchParameter, store=Store()).predict(X=X)
+        predictions_ = [p0[0], p1[0], p2[0], p3[0], p4[0], p5[0][0], p6]
+        final_response = np.bincount(predictions_).argmax()
+        print(final_response == 1)
 
 
 if __name__ == '__main__':
-    # Execute Prediction
     if __PREDICT__:
-        pass
-        # Predictor.predict("<TEXT>")
+        text = input()
+        Predictor.predict(X=text)
     else:
         # Train model provided
         Executor.run(model=__RUN_MODEL__, path=__DATA__, refit=__FORCE__)

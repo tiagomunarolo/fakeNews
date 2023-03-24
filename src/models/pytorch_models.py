@@ -106,6 +106,8 @@ class CNNClassifier(nn.Module):
         out = self.fc(union)
         out = self.dropout(out)
         out = torch.sigmoid(out)
+        if out.shape == (1, 1):
+            return [float(out.squeeze())]
         return out.squeeze()
 
     def vectorize_data(self, X: any) -> List[list]:
@@ -174,5 +176,7 @@ class CNNClassifier(nn.Module):
             X = self.vectorize_data(X)
             X = tf.keras.preprocessing.sequence.pad_sequences(X, maxlen=self.seq_len)
             y_hat = self(torch.tensor(X))
+            if len(y_hat) == 1:
+                return y_hat[0] > 0.5
             predictions = [x > 0.5 for x in y_hat.detach().numpy()]
             return predictions
