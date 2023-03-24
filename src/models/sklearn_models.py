@@ -42,10 +42,9 @@ class TermFrequencyClassifier:
         """
         Vectorize data and returns X and tf-idf object
         """
-        logger.info(msg="vectorize_data started")
+        logger.info(msg="VECTORIZE_DATA ... ")
         tf_vector = TfidfVectorizer()
         tf_vector.fit(X)
-        logger.info(msg="vectorize_data finished")
         return tf_vector.transform(X), tf_vector
 
     def fit(self, X: any, y: any, refit: bool = False) -> None:
@@ -61,21 +60,20 @@ class TermFrequencyClassifier:
             self.__dict__ = _.__dict__
             return
 
-        logger.info(msg=f"Fitting models {self.model_name}")
         X, self.tf_vector = self.vectorize_data(X=X)
-        if self.model_name == 'VOTING':
-            estimator = self.model_type
-        else:
-            estimator = self.model_type(random_state=42)
+        estimator = self.model_type(random_state=42)
+        logger.info(msg=f"FITTING_MODEL: {self.model_name} STARTED")
         grid = GridSearchCV(estimator=estimator,
                             param_grid=self.param_grid,
                             cv=3,
-                            verbose=5, )
+                            verbose=0,
+                            return_train_score=False, )
 
         grid.fit(X=X, y=y)
-        logger.info(msg=f"Model fitted {self.model_name}")
+        logger.info(msg=f"MODEL_FITTING: {self.model_name} DONE!")
         # select best models
         self.model = grid.best_estimator_
+        logger.info(msg=f"TRAINING_SCORES :: {self.model_name} :: {grid.best_score_}")
         # Store models
         self.store.store_model(obj=self)
 
