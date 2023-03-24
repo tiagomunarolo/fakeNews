@@ -5,5 +5,5 @@ Models implementations for Classification Binary Tasks
 3- Pytorch Models
 """
 from .sklearn_models import TermFrequencyClassifier
-from .pytorch_models import TextClassifier
+from .pytorch_models import CNNClassifier
 from .keras_models import LstmClassifier

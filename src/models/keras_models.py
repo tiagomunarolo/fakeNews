@@ -1,6 +1,7 @@
 """
 Keras LSTM implementation for fake news detection
 """
+import numpy as np
 import tensorflow as tf
 from keras.layers import Input, Dense, Bidirectional, LSTM, Embedding
 from keras.preprocessing.text import Tokenizer
@@ -10,8 +11,9 @@ from typing import List, Protocol
 from src.logger.logging import get_logger
 
 logger = get_logger(__file__)
-gpu = len(tf.config.list_physical_devices('GPU')) > 0
-logger.info("GPU is available" if gpu else "NOT AVAILABLE")
+# SET GPU AS DEFAULT
+gpus = tf.config.experimental.list_physical_devices('GPU')
+tf.config.experimental.set_visible_devices(gpus[0], 'GPU')
 
 
 class Parameter(Protocol):
@@ -27,7 +29,7 @@ class Parameter(Protocol):
     model_name: str
 
 
-def compile_model(parameter) -> tf.keras.Model:
+def compile_model(parameter: Parameter) -> tf.keras.Model:
     """
     Compile models according Input/Output layers below
     """
@@ -66,7 +68,7 @@ class LstmClassifier:
         self.tokenizer = None
         self.model = None
 
-    def _tokenize(self, X: any) -> List[list]:
+    def vectorize_data(self, X: any) -> List[list]:
         """
         Tokenize Corpus Dataset
         :param X: Array like
@@ -80,7 +82,7 @@ class LstmClassifier:
         logger.info("Tokenizing data for LSTM...completed")
         return self.tokenizer.texts_to_sequences(X)
 
-    def fit(self, X: any, y: any, refit=False) -> None:
+    def fit(self, X: any, y: any, refit: bool = False) -> None:
         """
         Fit tf.keras Model
         :param refit: bool :: Force model refit
@@ -96,8 +98,8 @@ class LstmClassifier:
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, stratify=y, random_state=42, train_size=0.1)
 
-        X_train = self._tokenize(X_train)
-        X_test = self._tokenize(X_test)
+        X_train = self.vectorize_data(X_train)
+        X_test = self.vectorize_data(X_test)
         X_train = tf.keras.preprocessing.sequence.pad_sequences(X_train, maxlen=self.params.pad_len)
         X_test = tf.keras.preprocessing.sequence.pad_sequences(X_test, maxlen=self.params.pad_len)
 
@@ -117,13 +119,13 @@ class LstmClassifier:
         :param X:
         :return:
         """
-        logger.info(f"Predicting data: {X.shape}")
         if not self.model:
             _ = self.store.read_model()
             self.__class__ = _.__class__
             self.__dict__ = _.__dict__
 
-        X = self._tokenize(X)
+        X = np.array(X)
+        X = self.vectorize_data(X)
         X = tf.keras.preprocessing.sequence.pad_sequences(X, maxlen=self.params.pad_len)
         logger.info("Prediction completed")
         return (self.model.predict(X) > 0.5).astype("bool")

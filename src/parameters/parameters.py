@@ -10,8 +10,8 @@ import numpy as np
 class PytorchParameter:
     # Preprocessing parameters
     model_name: str = 'cnn'
-    seq_len: int = 512
-    num_words: int = 30000
+    pad_len: int = 512
+    max_features: int = 30000
 
     # Model parameters
     embedding_size: int = 256
@@ -101,7 +101,7 @@ class KerasParameter:
     layer_2: int = 128
     layer_3: int = 56
     epochs: int = 10
-    batch_size: int = 64
+    batch_size: int = 32
 
     # model metadata
     model_name: str = 'lstm'

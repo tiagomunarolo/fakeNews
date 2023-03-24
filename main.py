@@ -7,13 +7,24 @@ from src.parameters import LogisticParameter
 from src.parameters import XgBoostParameter
 from src.parameters import KerasParameter
 from src.models import LstmClassifier
-from src.models import TermFrequencyClassifier
-from src.models import TextClassifier
+from src.models import TermFrequencyClassifier as TFClassifier
+from src.models import CNNClassifier
 from src.models.interfaces import ObjectStore as Store
+from src.utils import manage_input
+from src.errors import PredictionError, ModelNotImplementedError
 
+__LOGISTIC__ = "LOGISTIC"
+__XGBOOST__ = "XGBOOST"
+__RANDOM_FOREST__ = "RANDOM_FOREST"
+__SVM__ = "SVM"
+__DECISION_TREE__ = "DECISION_TREE"
+__LSTM__ = "LSTM"
+__CNN__ = "CNN"
 
-class ModelNotImplementedError(Exception):
-    """"""
+__RUN_MODEL__ = os.getenv("MODEL", "LOGISTIC")
+__DATA__ = os.getenv('DATA', "./data/preprocessed.csv")
+__FORCE__ = bool(os.getenv('FORCE', False))
+__PREDICT__ = bool(os.getenv('PREDICT', True))
 
 
 class Executor:
@@ -23,33 +34,57 @@ class Executor:
         from src.utils import get_xy_from_dataset
         store = Store()
         X, y = get_xy_from_dataset(path=path)
-        if model == 'LOGISTIC':
-            TermFrequencyClassifier(parameters=LogisticParameter, store=store). \
+        if model == __LOGISTIC__:
+            TFClassifier(parameters=LogisticParameter, store=store). \
                 fit(X=X, y=y, refit=refit)
-        elif model == 'XGBOOST':
-            TermFrequencyClassifier(parameters=XgBoostParameter, store=store). \
+        elif model == __XGBOOST__:
+            TFClassifier(parameters=XgBoostParameter, store=store). \
                 fit(X=X, y=y, refit=refit)
-        elif model == 'RANDOM_FOREST':
-            TermFrequencyClassifier(parameters=RandomForestParameter, store=store). \
+        elif model == __RANDOM_FOREST__:
+            TFClassifier(parameters=RandomForestParameter, store=store). \
                 fit(X=X, y=y, refit=refit)
-        elif model == 'SVM':
-            TermFrequencyClassifier(parameters=SVCParameter, store=store) \
+        elif model == __SVM__:
+            TFClassifier(parameters=SVCParameter, store=store) \
                 .fit(X=X, y=y, refit=refit)
-        elif model == 'DECISION_TREE':
-            TermFrequencyClassifier(parameters=DecisionTreeParameter, store=store). \
+        elif model == __DECISION_TREE__:
+            TFClassifier(parameters=DecisionTreeParameter, store=store). \
                 fit(X=X, y=y, refit=refit)
-        elif model == 'LSTM':
+        elif model == __LSTM__:
             LstmClassifier(parameters=KerasParameter, store=store). \
                 fit(X=X, y=y, refit=refit)
-        elif model == 'CNN':
-            TextClassifier(parameters=PytorchParameter, store=store). \
+        elif model == __CNN__:
+            CNNClassifier(parameters=PytorchParameter, store=store). \
                 fit(X=X, y=y, refit=refit)
         else:
             raise ModelNotImplementedError
 
 
+class Predictor:
+
+    @staticmethod
+    def predict(x: str):
+        if not x:
+            raise PredictionError
+        # store = Store()
+        # X = manage_input(text=x)
+        # p0 = TFClassifier(parameters=LogisticParameter, store=store).predict(X=X)
+        # p1 = TFClassifier(parameters=XgBoostParameter, store=store).predict(X=X)
+        # p2 = TFClassifier(parameters=RandomForestParameter, store=store).predict(X=X)
+        # p3 = TFClassifier(parameters=SVCParameter, store=store).predict(X=X)
+        # p4 = TFClassifier(parameters=DecisionTreeParameter, store=store).predict(X=X)
+        # p5 = LstmClassifier(parameters=KerasParameter, store=store).predict(X=X)
+        # prediction = CNNClassifier(PytorchParameter, store).predict(X=X)
+        # predictions_ = [p0[0], p1[0], p2[0], p3[0], p4[0], p5[0][0]]
+        # print(predictions_)
+        # final_response = np.bincount(predictions_).argmax()
+        # print(final_response)
+        # print(prediction)
+
+
 if __name__ == '__main__':
-    _model_ = os.getenv("FAKE_MODEL_TRAIN", "LOGISTIC")
-    _data_path_ = os.getenv('DATASET_PATH', "./data/preprocessed.csv")
-    _force_ = bool(os.getenv('FORCE', False))
-    Executor.run(model=_model_, path=_data_path_, refit=_force_)
+    # Execute Prediction
+    if __PREDICT__:
+        Predictor.predict("<TEXT>")
+    else:
+        # Train model provided
+        Executor.run(model=__RUN_MODEL__, path=__DATA__, refit=__FORCE__)

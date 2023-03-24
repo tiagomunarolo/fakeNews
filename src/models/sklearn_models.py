@@ -84,13 +84,11 @@ class TermFrequencyClassifier:
         :parameter: X: Text list to be predicted
         Generates prediction, given a text
         """
-        from crawler.dataset_builder import generate_dataset_for_input
         if not self.model:
             _ = self.store.read_model()
             self.__class__ = _.__class__
             self.__dict__ = _.__dict__
 
-        X = generate_dataset_for_input(df=X)
         X = self.tf_vector.transform(X)
         return self.model.predict(X=X)
 
