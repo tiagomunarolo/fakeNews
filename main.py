@@ -60,31 +60,36 @@ class Executor:
 
 
 class Predictor:
+    ...
 
-    @staticmethod
-    def predict(x: str):
-        if not x:
-            raise PredictionError
-        # store = Store()
-        # X = manage_input(text=x)
-        # p0 = TFClassifier(parameters=LogisticParameter, store=store).predict(X=X)
-        # p1 = TFClassifier(parameters=XgBoostParameter, store=store).predict(X=X)
-        # p2 = TFClassifier(parameters=RandomForestParameter, store=store).predict(X=X)
-        # p3 = TFClassifier(parameters=SVCParameter, store=store).predict(X=X)
-        # p4 = TFClassifier(parameters=DecisionTreeParameter, store=store).predict(X=X)
-        # p5 = LstmClassifier(parameters=KerasParameter, store=store).predict(X=X)
-        # prediction = CNNClassifier(PytorchParameter, store).predict(X=X)
-        # predictions_ = [p0[0], p1[0], p2[0], p3[0], p4[0], p5[0][0]]
-        # print(predictions_)
-        # final_response = np.bincount(predictions_).argmax()
-        # print(final_response)
-        # print(prediction)
+
+# TODO Finish class
+# @staticmethod
+# def predict(X: str):
+#     if not X:
+#         raise PredictionError
+#     store = Store()
+#     # X = manage_input(text=x)
+#     # p0 = TFClassifier(parameters=LogisticParameter, store=store).predict(X=X)
+#     # p1 = TFClassifier(parameters=XgBoostParameter, store=store).predict(X=X)
+#     # p2 = TFClassifier(parameters=RandomForestParameter, store=store).predict(X=X)
+#     # p3 = TFClassifier(parameters=SVCParameter, store=store).predict(X=X)
+#     # p4 = TFClassifier(parameters=DecisionTreeParameter, store=store).predict(X=X)
+#     # p5 = LstmClassifier(parameters=KerasParameter, store=store).predict(X=X)
+#     prediction = CNNClassifier(PytorchParameter, store).predict(X=X)
+#     return prediction
+#     # predictions_ = [p0[0], p1[0], p2[0], p3[0], p4[0], p5[0][0]]
+#     # print(predictions_)
+#     # final_response = np.bincount(predictions_).argmax()
+#     # print(final_response)
+#     # print(prediction)
 
 
 if __name__ == '__main__':
     # Execute Prediction
     if __PREDICT__:
-        Predictor.predict("<TEXT>")
+        pass
+        # Predictor.predict("<TEXT>")
     else:
         # Train model provided
         Executor.run(model=__RUN_MODEL__, path=__DATA__, refit=__FORCE__)

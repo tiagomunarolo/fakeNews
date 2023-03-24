@@ -10,17 +10,17 @@ import numpy as np
 class PytorchParameter:
     # Preprocessing parameters
     model_name: str = 'cnn'
-    pad_len: int = 512
-    max_features: int = 30000
+    seq_len: int = 200
+    num_words: int = 2000
 
     # Model parameters
-    embedding_size: int = 256
-    out_size: int = 128
+    embedding_size: int = 64
+    out_size: int = 32
     stride: int = 2
 
     # Training parameters
     epochs: int = 100
-    batch_size: int = 32
+    batch_size: int = 16
     learning_rate: float = 0.001
 
 
