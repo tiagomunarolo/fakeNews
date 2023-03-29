@@ -171,8 +171,9 @@ def create_final_dataset() -> None:
     for ix, data in final_df.iterrows():
         text = data['TEXT']
         final_df.at[ix, 'TEXT'] = remove_stop_words(content=text, remove_words=remove_words)
-        if int(ix) and int(ix) % 100 == 0:
-            logger.info(f"FINAL_DATASET: {int(ix) / len(final_df)} processed")
+        if int(ix) and int(ix) % 500 == 0:
+            logger.info(f"FINAL_DATASET: "
+                        f"{round(int(ix) / len(final_df), 2)} processed")
     final_df.drop_duplicates(inplace=True)
     final_df.to_csv(path_or_buf=FINAL_PATH, index_label=False)
 
