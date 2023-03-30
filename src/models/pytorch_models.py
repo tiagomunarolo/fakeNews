@@ -29,6 +29,7 @@ class CNNClassifier(nn.Module):
         self.pad_len = _.pad_len
         self.max_features = _.max_features
         # Model layers definitions
+        self.embedding = _.embedding_size
         self.batch_size = _.batch_size
         self.out_size = _.out_size
         self.stride = _.stride
@@ -37,7 +38,6 @@ class CNNClassifier(nn.Module):
         self.epochs = _.epochs
         self.criterion = nn.BCELoss().to(device=device)
         self.optimizer = None
-        # Convolutional definitions
         # Net shape: 4 Convolution layers definition
         self.conv1 = nn.Conv1d(in_channels=self.pad_len,
                                out_channels=self.out_size,
@@ -60,7 +60,7 @@ class CNNClassifier(nn.Module):
         self.pool3 = nn.MaxPool1d(kernel_size=4, stride=self.stride).to(device=device)
         self.pool4 = nn.MaxPool1d(kernel_size=5, stride=self.stride).to(device=device)
         self.embedding = nn.Embedding(num_embeddings=self.max_features + 1,
-                                      embedding_dim=self.pad_len,
+                                      embedding_dim=self.embedding,
                                       padding_idx=0).to(device=device)
 
     def forward(self, x):
@@ -75,7 +75,6 @@ class CNNClassifier(nn.Module):
 
         """
         x_ = self.embedding(x)
-        x_ = x_.transpose(1, 2).contiguous()
         x_ = x_.to(device=device)
         x1 = self.pool1(torch.relu(self.conv1(x_)))
         x2 = self.pool2(torch.relu(self.conv2(x_)))
@@ -123,11 +122,12 @@ class CNNClassifier(nn.Module):
         """
         # Set the model in evaluation mode
         self.eval()
+        y_batch = y_batch.detach().numpy()
         # Disable gradients for evaluation
         with torch.no_grad():
             y_hat = self(x_batch)
-            y_hat = y_hat.detach().numpy()
-        correct = sum(1 for y, y_pred in zip(y_batch, y_hat) if round(y_pred) == y)
+            y_hat = y_hat.detach().numpy().round()
+        correct = sum(1 for y, y2 in zip(y_batch, y_hat) if y == y2)
         return correct
 
     def _execute_train(self, x_batch: torch.tensor,
@@ -179,6 +179,7 @@ class CNNClassifier(nn.Module):
             X=X, pad_len=self.pad_len, max_words=self.max_features)
         X_train, X_test, y_train, y_test = train_test_split(
             X, y,
+            test_size=0.1,
             stratify=y, shuffle=True, random_state=42)
         # train dataset
         X_train = torch.tensor(X_train).long()
@@ -206,7 +207,7 @@ class CNNClassifier(nn.Module):
                 correct += self._evaluate(x_batch=x_batch, y_batch=y_batch)
 
             print(f"EPOCH_LOSS: {round(epoch_loss, 2)}")
-            print(f"EPOCH_ACC: {round(correct / len(loader_test), 2)}")
+            print(f"EPOCH_ACC: {round(correct / len(loader_test.dataset), 2)}")
 
         self.store.store_model(obj=self)
 
