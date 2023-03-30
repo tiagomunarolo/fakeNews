@@ -1,11 +1,12 @@
 import torch
 import torch.nn as nn
 from tqdm import tqdm
+from typing import List
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
 from src.models.interfaces import Store
 
-device = "mps" if torch.backends.mps.is_available() else "cpu"
+device = "cpu" if torch.backends.mps.is_available() else "cpu"
 device = torch.device(device)
 
 
@@ -25,31 +26,32 @@ class CNNClassifier(nn.Module):
         self.store = store
         self.store.set_path(path=f"./{_.model_name}.model")
         # Parameters regarding text preprocessing
-        self.num_words = _.num_words
-        self.embedding_size = _.embedding_size
+        self.pad_len = _.pad_len
+        self.max_features = _.max_features
+        # Model layers definitions
         self.batch_size = _.batch_size
-        self.lr = _.learning_rate
-        self.epochs = _.epochs
         self.out_size = _.out_size
         self.stride = _.stride
-        # Optimizer and criterion
+        # Optimizer, Criterion, L. Rate, epochs ...
+        self.lr = _.learning_rate
+        self.epochs = _.epochs
         self.criterion = nn.BCELoss().to(device=device)
         self.optimizer = None
         # Convolutional definitions
         # Net shape: 4 Convolution layers definition
-        self.conv1 = nn.Conv1d(in_channels=self.embedding_size,
+        self.conv1 = nn.Conv1d(in_channels=self.pad_len,
                                out_channels=self.out_size,
                                kernel_size=2,
                                stride=self.stride).to(device=device)
-        self.conv2 = nn.Conv1d(in_channels=self.embedding_size,
+        self.conv2 = nn.Conv1d(in_channels=self.pad_len,
                                out_channels=self.out_size,
                                kernel_size=3,
                                stride=self.stride).to(device=device)
-        self.conv3 = nn.Conv1d(in_channels=self.embedding_size,
+        self.conv3 = nn.Conv1d(in_channels=self.pad_len,
                                out_channels=self.out_size,
                                kernel_size=4,
                                stride=self.stride).to(device=device)
-        self.conv4 = nn.Conv1d(in_channels=self.embedding_size,
+        self.conv4 = nn.Conv1d(in_channels=self.pad_len,
                                out_channels=self.out_size,
                                kernel_size=5,
                                stride=self.stride).to(device=device)
@@ -57,8 +59,8 @@ class CNNClassifier(nn.Module):
         self.pool2 = nn.MaxPool1d(kernel_size=3, stride=self.stride).to(device=device)
         self.pool3 = nn.MaxPool1d(kernel_size=4, stride=self.stride).to(device=device)
         self.pool4 = nn.MaxPool1d(kernel_size=5, stride=self.stride).to(device=device)
-        self.embedding = nn.Embedding(num_embeddings=self.num_words + 1,
-                                      embedding_dim=self.embedding_size,
+        self.embedding = nn.Embedding(num_embeddings=self.max_features + 1,
+                                      embedding_dim=self.pad_len,
                                       padding_idx=0).to(device=device)
 
     def forward(self, x):
@@ -89,14 +91,23 @@ class CNNClassifier(nn.Module):
         return out.squeeze()
 
     @staticmethod
-    def vectorize_data(X: any, y):
+    def vectorize_data(X: any, pad_len: int = 1000, max_words: int = 30000) -> List[list]:
         """
-        Vectorize data and returns X and tf-idf object
+
+        Parameters
+        ----------
+        X
+        pad_len
+        max_words
+        Returns
+        -------
+
         """
-        from src.preprocess.tfidf import TfIDF
-        tf_vector = TfIDF()
-        tf_vector.fit(raw_documents=X, y=y)
-        return tf_vector.transform(X), tf_vector
+        from src.preprocess.tfidf import TokenizerTf
+        tf_vector = TokenizerTf(max_words=max_words,
+                                max_len=pad_len)
+        tf_vector.fit(raw_documents=X)
+        return tf_vector.transform(raw_documents=X), tf_vector
 
     def _evaluate(self, x_batch, y_batch):
         """
@@ -164,7 +175,8 @@ class CNNClassifier(nn.Module):
         if not refit or X is None or y is None:
             return
 
-        X, self.tokenizer = self.vectorize_data(X=X, y=y)
+        X, self.tokenizer = self.vectorize_data(
+            X=X, pad_len=self.pad_len, max_words=self.max_features)
         X_train, X_test, y_train, y_test = train_test_split(
             X, y,
             stratify=y, shuffle=True, random_state=42)

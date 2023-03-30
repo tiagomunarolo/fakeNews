@@ -4,7 +4,6 @@ Keras LSTM implementation for fake news detection
 import numpy as np
 import tensorflow as tf
 from keras.layers import Input, Dense, Bidirectional, LSTM, Embedding
-from keras.preprocessing.text import Tokenizer
 from sklearn.model_selection import train_test_split
 from src.models.interfaces import Store
 from typing import List, Protocol
@@ -12,10 +11,9 @@ from src.logger.logging import get_logger
 
 logger = get_logger(__file__)
 
-
 # SET GPU AS DEFAULT
-# gpus = tf.config.experimental.list_physical_devices('GPU')
-# tf.config.experimental.set_visible_devices(gpus[0], 'GPU')
+gpus = tf.config.experimental.list_physical_devices('GPU')
+tf.config.experimental.set_visible_devices(gpus[0], 'GPU')
 
 
 class Parameter(Protocol):
@@ -52,7 +50,7 @@ def compile_model(parameter: Parameter) -> tf.keras.Model:
     model = tf.keras.Model(inputs, outputs)
     # compile models
     model.compile(loss=tf.keras.losses.BinaryCrossentropy(),
-                  optimizer=tf.keras.optimizers.Adam(1e-4),
+                  optimizer=tf.keras.optimizers.legacy.Adam(1e-4),
                   metrics=['accuracy'], )
     logger.info("Model compiled")
     return model
@@ -70,19 +68,24 @@ class LstmClassifier:
         self.tokenizer = None
         self.model = None
 
-    def vectorize_data(self, X: any) -> List[list]:
+    @staticmethod
+    def vectorize_data(X: any, pad_len: int = 1000, max_words: int = 30000) -> List[list]:
         """
-        Tokenize Corpus Dataset
-        :param X: Array like
-        :return:
+
+        Parameters
+        ----------
+        X
+        pad_len
+        max_words
+        Returns
+        -------
+
         """
-        logger.info("Tokenizing data for LSTM")
-        if not self.tokenizer:
-            self.tokenizer = Tokenizer(
-                num_words=self.params.max_features)
-        self.tokenizer.fit_on_texts(X)
-        logger.info("Tokenizing data for LSTM...completed")
-        return self.tokenizer.texts_to_sequences(X)
+        from src.preprocess.tfidf import TokenizerTf
+        tf_vector = TokenizerTf(max_words=max_words,
+                                max_len=pad_len)
+        tf_vector.fit(raw_documents=X)
+        return tf_vector.transform(raw_documents=X), tf_vector
 
     def fit(self, X: any, y: any, refit: bool = False) -> None:
         """
@@ -97,13 +100,10 @@ class LstmClassifier:
             self.__dict__ = _.__dict__
             return
 
+        X, self.tokenizer = self.vectorize_data(
+            X=X, pad_len=self.params.pad_len, max_words=self.params.max_features)
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, stratify=y, random_state=42, train_size=0.1)
-
-        X_train = self.vectorize_data(X_train)
-        X_test = self.vectorize_data(X_test)
-        X_train = tf.keras.preprocessing.sequence.pad_sequences(X_train, maxlen=self.params.pad_len)
-        X_test = tf.keras.preprocessing.sequence.pad_sequences(X_test, maxlen=self.params.pad_len)
 
         self.model = compile_model(parameter=self.params)
         # Fit models

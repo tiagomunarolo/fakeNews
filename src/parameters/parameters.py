@@ -10,14 +10,11 @@ import numpy as np
 class PytorchParameter:
     # Preprocessing parameters
     model_name: str = 'cnn'
-    num_words: int = 10000
-
+    max_features: int = 30000  # max words in data dictionary
+    pad_len: int = 512
     # Model parameters
-    embedding_size: int = 64
     out_size: int = 32
     stride: int = 2
-
-    # Training parameters
     epochs: int = 100
     batch_size: int = 16
     learning_rate: float = 0.001
@@ -93,14 +90,14 @@ class RandomForestParameter:
 
 @dataclass
 class KerasParameter:
-    # Model parameters
+    # Text parameters
     max_features: int = 30000  # max words in data dictionary
     pad_len: int = 512
+    # Model parameters
     layer_1: int = 256
     layer_2: int = 128
     layer_3: int = 56
     epochs: int = 10
     batch_size: int = 32
-
     # model metadata
     model_name: str = 'lstm'
