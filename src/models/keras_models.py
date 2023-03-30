@@ -11,9 +11,11 @@ from typing import List, Protocol
 from src.logger.logging import get_logger
 
 logger = get_logger(__file__)
+
+
 # SET GPU AS DEFAULT
-gpus = tf.config.experimental.list_physical_devices('GPU')
-tf.config.experimental.set_visible_devices(gpus[0], 'GPU')
+# gpus = tf.config.experimental.list_physical_devices('GPU')
+# tf.config.experimental.set_visible_devices(gpus[0], 'GPU')
 
 
 class Parameter(Protocol):

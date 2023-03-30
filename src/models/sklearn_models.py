@@ -4,7 +4,6 @@ SKLEARN implementations
 """
 import warnings
 from typing import Protocol
-from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.model_selection import GridSearchCV
 from src.logger.logging import get_logger
 from src.models.interfaces import Store
@@ -38,13 +37,14 @@ class TermFrequencyClassifier:
         self.tf_vector = None
 
     @staticmethod
-    def vectorize_data(X: any):
+    def vectorize_data(X: any, y):
         """
         Vectorize data and returns X and tf-idf object
         """
+        from src.preprocess.tfidf import TfIDF
         logger.info(msg="VECTORIZE_DATA ... ")
-        tf_vector = TfidfVectorizer()
-        tf_vector.fit(X)
+        tf_vector = TfIDF()
+        tf_vector.fit(raw_documents=X, y=y)
         return tf_vector.transform(X), tf_vector
 
     def fit(self, X: any, y: any, refit: bool = False) -> None:
@@ -60,12 +60,12 @@ class TermFrequencyClassifier:
             self.__dict__ = _.__dict__
             return
 
-        X, self.tf_vector = self.vectorize_data(X=X)
+        X, self.tf_vector = self.vectorize_data(X=X, y=y)
         estimator = self.model_type(random_state=42)
         logger.info(msg=f"FITTING_MODEL: {self.model_name} STARTED")
         grid = GridSearchCV(estimator=estimator,
                             param_grid=self.param_grid,
-                            cv=3,
+                            cv=5,
                             verbose=0,
                             return_train_score=False, )
 

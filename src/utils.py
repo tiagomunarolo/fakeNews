@@ -15,16 +15,17 @@ Used datasets:
 """
 import os
 import pandas as pd
+import swifter
 from typing import Tuple, List
 
 import re
 import nltk
 from nltk.corpus import stopwords
 from unicodedata import normalize
-from nltk.corpus import wordnet
 from nltk.stem import SnowballStemmer
 from crawler import DATASET_PATH
 from src.logger import get_logger
+import spacy
 
 FINAL_PATH = f"{DATASET_PATH}/preprocessed.csv"
 ORIGINAL_DATASET = f"{DATASET_PATH}/original_dataset.csv"
@@ -41,12 +42,15 @@ nltk.download('omw-1.4', quiet=True)
 
 stemmer = SnowballStemmer(language="portuguese")
 STOP_WORDS = stopwords.words('portuguese')
-TRUE_WORDS = ['verdade', 'fato', 'real', 'veridico', 'exato', 'checar', 'verificar']
-FALSE_WORDS = ['falsear', 'fake', 'mentir', 'fraudar', 'inverdade',
-               'fingir', 'enganar', 'ocultar', 'inventar']
+TRUE_WORDS = ['verdade', 'fato', 'real']
+FALSE_WORDS = ['fake', 'mentir', 'falso']
 REMOVE_DATA = TRUE_WORDS + FALSE_WORDS
 
 logger = get_logger(__file__)
+spacy.load('pt_core_news_lg')
+nlp = spacy.load("pt_core_news_lg")
+
+REMOVE_DATA = [stemmer.stem(w) for w in REMOVE_DATA]
 
 
 def get_xy_from_dataset(path: str = "") \
@@ -63,37 +67,23 @@ def get_xy_from_dataset(path: str = "") \
     return X, Y
 
 
-def get_synonyms(words_to_check: list):
-    """
-    Returns list of synonyms based on provided words.
-    This step ensures and avoid bias due to specific words
-    :return:
-    """
-    synonyms = ['fake']
-    for remove in words_to_check:
-        words = wordnet.synsets(remove, lang="por")
-        for word in words:
-            for syn in word.lemmas(lang="por"):
-                synonyms.append(str(syn.name()).lower())
-    return set(synonyms)
-
-
-def remove_stop_words(content, remove_words):
+def clean_text(content: str):
     """
     Remove all stop words for brazilian-portuguese
-    :param remove_words: list - words list to be removed
     :param content: str - text of news
     :return:
     """
-    # remove special characters
     txt = re.sub(r'http://\S+|https://\S+', ' ', content)  # Remove URLs
     txt = normalize('NFKD', txt).encode('ASCII', 'ignore').decode('ASCII')
     txt = re.sub(r'[^a-zA-Z]', ' ', txt)
-    txt = re.sub(r'[^\w+]', ' ', txt).split()
-    txt = [stemmer.stem(w) for w in txt if w not in remove_words and not w.isnumeric()]
-    txt = [x for x in txt if len(x) > 1]  # Remove residuals
+    txt = re.sub(r'[^\w+]', ' ', txt)
+    txt = ' '.join([x.lemma_ for x in nlp(txt)]).lower().split()
+    txt = [w for w in txt if not nlp.vocab[str(w)].is_stop and not w.isnumeric()]
+    txt = [w for w in txt if w not in STOP_WORDS]
+    txt = [w for w in txt if not w.startswith(tuple(REMOVE_DATA))]
+    txt = [w for w in txt if len(w) > 2]  # Remove residuals
     txt = ' '.join(txt)
-    return txt
+    return txt.lower()
 
 
 def manage_input(text: str) -> List[str]:
@@ -102,8 +92,7 @@ def manage_input(text: str) -> List[str]:
     :param text: str :: input text
     :return:
     """
-    remove_words = get_synonyms(words_to_check=REMOVE_DATA)
-    text = remove_stop_words(content=text, remove_words=remove_words)
+    text = clean_text(content=text)
     return [text]
 
 
@@ -112,8 +101,6 @@ def create_final_dataset() -> None:
     Build final data to be analyzed
     """
     logger.info("Creating Final Dataset")
-    # Get a list of words to be removed (avoid bias)
-    remove_words = get_synonyms(words_to_check=REMOVE_DATA)
     # columns_used
     columns_used = ['TEXT', 'TEXT_SIZE', 'LABEL', 'SOURCE']
     """STEP 1: G1 data"""
@@ -167,13 +154,9 @@ def create_final_dataset() -> None:
     final_df.reset_index(inplace=True, drop=True)
     final_df.to_csv(path_or_buf=ORIGINAL_DATASET, index_label=False)
     logger.info("Final Unified Dataset Done")
-    remove_words = STOP_WORDS + list(remove_words)
-    for ix, data in final_df.iterrows():
-        text = data['TEXT']
-        final_df.at[ix, 'TEXT'] = remove_stop_words(content=text, remove_words=remove_words)
-        if int(ix) and int(ix) % 500 == 0:
-            logger.info(f"FINAL_DATASET: "
-                        f"{round(int(ix) / len(final_df), 2)} processed")
+    final_df.TEXT = final_df.TEXT. \
+        swifter.progress_bar(True). \
+        apply(clean_text)
     final_df.drop_duplicates(inplace=True)
     final_df.to_csv(path_or_buf=FINAL_PATH, index_label=False)
 

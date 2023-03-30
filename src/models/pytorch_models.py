@@ -1,165 +1,200 @@
-import tensorflow as tf
 import torch
-import math
 import torch.nn as nn
-from typing import List
-from keras.preprocessing.text import Tokenizer
+from tqdm import tqdm
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
 from src.models.interfaces import Store
-from torch.nn.functional import binary_cross_entropy
+
+device = "mps" if torch.backends.mps.is_available() else "cpu"
+device = torch.device(device)
 
 
 class CNNClassifier(nn.Module):
     def __init__(self, parameters, store: Store):
+        """
+        Convolutional Net
+        Parameters
+        ----------
+        parameters: Parameter
+        store: Store
+        """
         super(CNNClassifier, self).__init__()
-        params = parameters
         # Store parameters
+        _ = parameters
         self.tokenizer = None
         self.store = store
-        self.store.set_path(path=f"./{params.model_name}.model")
+        self.store.set_path(path=f"./{_.model_name}.model")
         # Parameters regarding text preprocessing
-        self.seq_len = params.seq_len
-        self.num_words = params.num_words
-        self.embedding_size = params.embedding_size
-        self.batch_size = params.batch_size
-        self.lr = params.learning_rate
-        self.epochs = params.epochs
-        # Dropout definition
-        self.dropout = nn.Dropout(0.25)
-        # CNN parameters definition
-        # Kernel sizes
-        self.kernel_1 = 2
-        self.kernel_2 = 3
-        self.kernel_3 = 4
-        self.kernel_4 = 5
-        # Output size for each convolution
-        self.out_size = params.out_size
-        # Number of strides for each convolution
-        self.stride = params.stride
-        # Embedding layer definition
-        self.embedding = nn.Embedding(self.num_words + 1, self.embedding_size, padding_idx=0)
-        # Convolution layers definition
-        self.conv_1 = nn.Conv1d(self.seq_len, self.out_size, self.kernel_1, self.stride)
-        self.conv_2 = nn.Conv1d(self.seq_len, self.out_size, self.kernel_2, self.stride)
-        self.conv_3 = nn.Conv1d(self.seq_len, self.out_size, self.kernel_3, self.stride)
-        self.conv_4 = nn.Conv1d(self.seq_len, self.out_size, self.kernel_4, self.stride)
-        # Max pooling layers definition
-        self.pool_1 = nn.MaxPool1d(self.kernel_1, self.stride)
-        self.pool_2 = nn.MaxPool1d(self.kernel_2, self.stride)
-        self.pool_3 = nn.MaxPool1d(self.kernel_3, self.stride)
-        self.pool_4 = nn.MaxPool1d(self.kernel_4, self.stride)
-        # Fully connected layer definition
-        self.fc = nn.Linear(self.in_features_fc(), 1)
-
-    def in_features_fc(self):
-        """Calculates the number of output features after Convolution + Max pooling
-
-        Convolved_Features = ((embedding_size + (2 * padding) - dilation * (kernel - 1) - 1) / stride) + 1
-        Pooled_Features = ((embedding_size + (2 * padding) - dilation * (kernel - 1) - 1) / stride) + 1
-
-        source: https://pytorch.org/docs/stable/generated/torch.nn.Conv1d.html
-        """
-        # Calcualte size of convolved/pooled features for convolution_1/max_pooling_1 features
-        out_conv_1 = ((self.embedding_size - 1 * (self.kernel_1 - 1) - 1) / self.stride) + 1
-        out_conv_1 = math.floor(out_conv_1)
-        out_pool_1 = ((out_conv_1 - 1 * (self.kernel_1 - 1) - 1) / self.stride) + 1
-        out_pool_1 = math.floor(out_pool_1)
-
-        # Calcualte size of convolved/pooled features for convolution_2/max_pooling_2 features
-        out_conv_2 = ((self.embedding_size - 1 * (self.kernel_2 - 1) - 1) / self.stride) + 1
-        out_conv_2 = math.floor(out_conv_2)
-        out_pool_2 = ((out_conv_2 - 1 * (self.kernel_2 - 1) - 1) / self.stride) + 1
-        out_pool_2 = math.floor(out_pool_2)
-
-        # Calcualte size of convolved/pooled features for convolution_3/max_pooling_3 features
-        out_conv_3 = ((self.embedding_size - 1 * (self.kernel_3 - 1) - 1) / self.stride) + 1
-        out_conv_3 = math.floor(out_conv_3)
-        out_pool_3 = ((out_conv_3 - 1 * (self.kernel_3 - 1) - 1) / self.stride) + 1
-        out_pool_3 = math.floor(out_pool_3)
-
-        # Calcualte size of convolved/pooled features for convolution_4/max_pooling_4 features
-        out_conv_4 = ((self.embedding_size - 1 * (self.kernel_4 - 1) - 1) / self.stride) + 1
-        out_conv_4 = math.floor(out_conv_4)
-        out_pool_4 = ((out_conv_4 - 1 * (self.kernel_4 - 1) - 1) / self.stride) + 1
-        out_pool_4 = math.floor(out_pool_4)
-
-        # Returns "flattened" vector (input for fully connected layer)
-        return (out_pool_1 + out_pool_2 + out_pool_3 + out_pool_4) * self.out_size
+        self.num_words = _.num_words
+        self.embedding_size = _.embedding_size
+        self.batch_size = _.batch_size
+        self.lr = _.learning_rate
+        self.epochs = _.epochs
+        self.out_size = _.out_size
+        self.stride = _.stride
+        # Optimizer and criterion
+        self.criterion = nn.BCELoss().to(device=device)
+        self.optimizer = None
+        # Convolutional definitions
+        # Net shape: 4 Convolution layers definition
+        self.conv1 = nn.Conv1d(in_channels=self.embedding_size,
+                               out_channels=self.out_size,
+                               kernel_size=2,
+                               stride=self.stride).to(device=device)
+        self.conv2 = nn.Conv1d(in_channels=self.embedding_size,
+                               out_channels=self.out_size,
+                               kernel_size=3,
+                               stride=self.stride).to(device=device)
+        self.conv3 = nn.Conv1d(in_channels=self.embedding_size,
+                               out_channels=self.out_size,
+                               kernel_size=4,
+                               stride=self.stride).to(device=device)
+        self.conv4 = nn.Conv1d(in_channels=self.embedding_size,
+                               out_channels=self.out_size,
+                               kernel_size=5,
+                               stride=self.stride).to(device=device)
+        self.pool1 = nn.MaxPool1d(kernel_size=2, stride=self.stride).to(device=device)
+        self.pool2 = nn.MaxPool1d(kernel_size=3, stride=self.stride).to(device=device)
+        self.pool3 = nn.MaxPool1d(kernel_size=4, stride=self.stride).to(device=device)
+        self.pool4 = nn.MaxPool1d(kernel_size=5, stride=self.stride).to(device=device)
+        self.embedding = nn.Embedding(num_embeddings=self.num_words + 1,
+                                      embedding_dim=self.embedding_size,
+                                      padding_idx=0).to(device=device)
 
     def forward(self, x):
-        x = self.embedding(x)
-        x1 = self.conv_1(x)
-        x1 = torch.relu(x1)
-        x1 = self.pool_1(x1)
-        x2 = self.conv_2(x)
-        x2 = torch.relu(x2)
-        x2 = self.pool_2(x2)
-        x3 = self.conv_3(x)
-        x3 = torch.relu(x3)
-        x3 = self.pool_3(x3)
-        x4 = self.conv_4(x)
-        x4 = torch.relu(x4)
-        x4 = self.pool_4(x4)
-        union = torch.cat((x1, x2, x3, x4), 2)
-        union = union.reshape(union.size(0), -1)
-        out = self.fc(union)
-        out = self.dropout(out)
+        """
+        Forward -> Apply model(X)
+        Parameters
+        ----------
+        x
+
+        Returns
+        -------
+
+        """
+        x_ = self.embedding(x)
+        x_ = x_.transpose(1, 2).contiguous()
+        x_ = x_.to(device=device)
+        x1 = self.pool1(torch.relu(self.conv1(x_)))
+        x2 = self.pool2(torch.relu(self.conv2(x_)))
+        x3 = self.pool3(torch.relu(self.conv3(x_)))
+        x4 = self.pool4(torch.relu(self.conv4(x_)))
+        out = torch.cat((x1, x2, x3, x4), dim=2)
+        out = out.reshape(out.size(0), -1)
+        out = nn.Linear(out.shape[1], 1, device=device)(out)
+        out = nn.Dropout(0.25)(out)
         out = torch.sigmoid(out)
         if out.shape == (1, 1):
             return [float(out.squeeze())]
         return out.squeeze()
 
-    def vectorize_data(self, X: any) -> List[list]:
+    @staticmethod
+    def vectorize_data(X: any, y):
         """
-        Tokenize Corpus Dataset
-        :param X: Array like
-        :return:
+        Vectorize data and returns X and tf-idf object
         """
-        if not self.tokenizer:
-            self.tokenizer = Tokenizer(
-                num_words=self.num_words)
-        self.tokenizer.fit_on_texts(X)
-        return self.tokenizer.texts_to_sequences(X)
+        from src.preprocess.tfidf import TfIDF
+        tf_vector = TfIDF()
+        tf_vector.fit(raw_documents=X, y=y)
+        return tf_vector.transform(X), tf_vector
+
+    def _evaluate(self, x_batch, y_batch):
+        """
+        Performs evaluation for each (x, y) batch
+        Parameters
+        ----------
+        x_batch: Features with batch_size
+        y_batch: Labels with batch_size
+
+        Returns
+        -------
+
+        """
+        # Set the model in evaluation mode
+        self.eval()
+        # Disable gradients for evaluation
+        with torch.no_grad():
+            y_hat = self(x_batch)
+            y_hat = y_hat.detach().numpy()
+        correct = sum(1 for y, y_pred in zip(y_batch, y_hat) if round(y_pred) == y)
+        return correct
+
+    def _execute_train(self, x_batch: torch.tensor,
+                       y_batch: torch.tensor) -> float:
+        """
+        Performs training for each (x, y) batch
+        Parameters
+        ----------
+        x_batch: Features with batch_size
+        y_batch: Labels with batch_size
+
+        Returns
+        -------
+        """
+        x_batch = x_batch.to(device=device)
+        y_batch = y_batch.to(device=device)
+        # Set training mode
+        self.train()
+        # Clear gradients
+        self.optimizer.zero_grad()
+        # Get prediction
+        y_hat = self(x_batch)
+        # Find the Loss
+        loss = self.criterion(y_hat, y_batch)
+        # Calculate gradients
+        loss.backward()
+        # Update Weights
+        self.optimizer.step()
+        # returns loss
+        return float(loss.item())
 
     def fit(self, X, y, refit=False):
+        """
+        Fit model given X=predictors, y=Label
+        Parameters
+        ----------
+        X
+        y
+        refit: bool :: Force model train
 
+        Returns
+        -------
+
+        """
         if not refit or X is None or y is None:
             return
 
-        X_train, _, y_train, _ = train_test_split(
+        X, self.tokenizer = self.vectorize_data(X=X, y=y)
+        X_train, X_test, y_train, y_test = train_test_split(
             X, y,
             stratify=y, shuffle=True, random_state=42)
-
-        X_train = self.vectorize_data(X_train)
-        X_train = tf.keras.preprocessing.sequence.pad_sequences(X_train, maxlen=self.seq_len)
-
-        X_train = torch.tensor(X_train, )
-        y_train = torch.tensor(y_train.values, )
+        # train dataset
+        X_train = torch.tensor(X_train).long()
+        y_train = torch.tensor(y_train.values, dtype=torch.float)
+        # test dataset
+        X_test = torch.tensor(X_test).long()
+        y_test = torch.tensor(y_test.values, dtype=torch.float)
 
         # Initialize loaders
         loader_train = DataLoader(list(zip(X_train, y_train)),
                                   batch_size=self.batch_size)
+        loader_test = DataLoader(list(zip(X_test, y_test)),
+                                 batch_size=self.batch_size)
 
-        # Optimizer
-        optimizer = torch.optim.SGD(self.parameters(), lr=self.lr)
+        # Optimizer and criterion
+        self.optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
         # Set model in training model
-        self.train()
-        for epoch in range(self.epochs):
-            running_loss = 0.0
-            for i, (x, labels) in enumerate(loader_train):
-                labels = labels.type(torch.FloatTensor)
-                optimizer.zero_grad()
-                outputs = self(x)
-                loss = binary_cross_entropy(outputs, labels)
-                loss.backward()
-                optimizer.step()
-                running_loss += loss.item()
-                if i and i % 99 == 0:
-                    print(f'[{epoch + 1}, '
-                          f'{i + 1:5d}] loss: '
-                          f'{running_loss / 100:.3f}')
-                    running_loss = 0.0
+        for epoch in range(0, self.epochs):
+            epoch_loss = 0.0
+            for i, (x_batch, y_batch) in enumerate(tqdm(loader_train)):
+                epoch_loss += self._execute_train(x_batch=x_batch, y_batch=y_batch)
+
+            correct = 0
+            for i, (x_batch, y_batch) in enumerate(loader_test):
+                correct += self._evaluate(x_batch=x_batch, y_batch=y_batch)
+
+            print(f"EPOCH_LOSS: {round(epoch_loss, 2)}")
+            print(f"EPOCH_ACC: {round(correct / len(loader_test), 2)}")
 
         self.store.store_model(obj=self)
 
@@ -173,8 +208,7 @@ class CNNClassifier(nn.Module):
         self.__class__ = _.__class__
         self.__dict__ = _.__dict__
         with torch.no_grad():
-            X = self.vectorize_data(X)
-            X = tf.keras.preprocessing.sequence.pad_sequences(X, maxlen=self.seq_len)
+            X = self.tokenizer.transform(X)
             y_hat = self(torch.tensor(X))
             if len(y_hat) == 1:
                 return y_hat[0] > 0.5

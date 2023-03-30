@@ -10,8 +10,7 @@ import numpy as np
 class PytorchParameter:
     # Preprocessing parameters
     model_name: str = 'cnn'
-    seq_len: int = 200
-    num_words: int = 2000
+    num_words: int = 10000
 
     # Model parameters
     embedding_size: int = 64
