@@ -1,6 +1,5 @@
 import os
 import numpy as np
-from src.parameters import PytorchParameter
 from src.parameters import RandomForestParameter
 from src.parameters import DecisionTreeParameter
 from src.parameters import SVCParameter
@@ -9,7 +8,6 @@ from src.parameters import XgBoostParameter
 from src.parameters import KerasParameter
 from src.models import LstmClassifier
 from src.models import TermFrequencyClassifier as TFClassifier
-from src.models import CNNClassifier
 from src.models.interfaces import ObjectStore as Store
 from src.utils import manage_input
 from src.errors import PredictionError, ModelNotImplementedError
@@ -52,9 +50,9 @@ class Executor:
         elif model == __LSTM__:
             LstmClassifier(parameters=KerasParameter, store=Store()). \
                 fit(X=X, y=y, refit=refit)
-        elif model == __CNN__:
-            CNNClassifier(parameters=PytorchParameter, store=Store()). \
-                fit(X=X, y=y, refit=refit)
+        # elif model == __CNN__:
+        #     CNNClassifier(parameters=PytorchParameter, store=Store()). \
+        #         fit(X=X, y=y, refit=refit)
         else:
             raise ModelNotImplementedError
 
@@ -73,8 +71,8 @@ class Predictor:
         p3 = TFClassifier(parameters=SVCParameter, store=Store()).predict(X=X)
         p4 = TFClassifier(parameters=DecisionTreeParameter, store=Store()).predict(X=X)
         p5 = LstmClassifier(parameters=KerasParameter, store=Store()).predict(X=X)
-        p6 = CNNClassifier(parameters=PytorchParameter, store=Store()).predict(X=X)
-        predictions_ = [p0[0], p1[0], p2[0], p3[0], p4[0], p5[0][0], p6]
+        # p6 = CNNClassifier(parameters=PytorchParameter, store=Store()).predict(X=X)
+        predictions_ = [p0[0], p1[0], p2[0], p3[0], p4[0], p5[0][0]]
         final_response = np.bincount(predictions_).argmax()
         print(final_response == 1)
 

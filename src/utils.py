@@ -14,7 +14,7 @@ Used datasets:
     source: https://github.com/roneysco/Fake.br-Corpus/tree/master/full_texts
 """
 import os
-import pandas as pd
+import modin.pandas as pd
 import swifter
 from typing import Tuple, List
 
@@ -26,6 +26,9 @@ from nltk.stem import SnowballStemmer
 from crawler import DATASET_PATH
 from src.logger import get_logger
 import spacy
+
+# setup swifter
+swifter.register_modin()
 
 FINAL_PATH = f"{DATASET_PATH}/preprocessed.csv"
 ORIGINAL_DATASET = f"{DATASET_PATH}/original_dataset.csv"

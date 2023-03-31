@@ -7,21 +7,6 @@ import numpy as np
 
 
 @dataclass
-class PytorchParameter:
-    # Preprocessing parameters
-    model_name: str = 'cnn'
-    max_features: int = 2000  # max words in data dictionary
-    pad_len: int = 100
-    # Model parameters
-    embedding_size = 64
-    out_size: int = 32
-    stride: int = 2
-    epochs: int = 10
-    batch_size: int = 32
-    learning_rate: float = 0.001
-
-
-@dataclass
 class XgBoostParameter:
     # Model parameters
     param_grid = dict({
