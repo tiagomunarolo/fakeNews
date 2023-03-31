@@ -6,3 +6,4 @@ Models implementations for Classification Binary Tasks
 """
 from .sklearn_models import TermFrequencyClassifier
 from .keras_models import LstmClassifier
+from .keras_models import CnnClassifier

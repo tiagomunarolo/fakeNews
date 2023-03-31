@@ -35,7 +35,7 @@ FAKE_CORPUS = f"{DATASET_PATH}/fake_corpus.csv"
 RUMOR_PATH = f"{DATASET_PATH}/rumor.csv"
 GPT_PATH = f"{DATASET_PATH}/chatgpt.csv"
 
-# NLTK depndencies
+# NLTK dependencies
 nltk.download('stopwords', quiet=True)
 nltk.download('wordnet', quiet=True)
 nltk.download('omw-1.4', quiet=True)

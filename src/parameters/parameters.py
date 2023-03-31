@@ -75,7 +75,7 @@ class RandomForestParameter:
 
 
 @dataclass
-class KerasParameter:
+class LstmParameter:
     # Text parameters
     max_features: int = 30000  # max words in data dictionary
     pad_len: int = 512
@@ -87,3 +87,14 @@ class KerasParameter:
     batch_size: int = 32
     # model metadata
     model_name: str = 'lstm'
+
+
+@dataclass
+class CnnParameter:
+    vocab_size: int = 10000  # max words in data dictionary
+    pad_len: int = 300
+    epochs: int = 10
+    batch_size: int = 32
+    transform_size: int = 200
+    # model metadata
+    model_name: str = 'cnn'

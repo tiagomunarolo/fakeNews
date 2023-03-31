@@ -3,6 +3,7 @@ Keras LSTM implementation for fake news detection
 """
 import numpy as np
 import tensorflow as tf
+from keras import models, layers
 from keras.layers import Input, Dense, Bidirectional, LSTM, Embedding
 from sklearn.model_selection import train_test_split
 from src.models.interfaces import Store
@@ -25,6 +26,17 @@ class Parameter(Protocol):
     layer_3: int
     epochs: int
     batch_size: int
+    # model metadata
+    model_name: str
+
+
+class Cnn(Protocol):
+    # HyperParameters of generic model
+    vocab_size: int  # max words in data dictionary
+    pad_len: int
+    epochs: int
+    batch_size: int
+    transform_size: int
     # model metadata
     model_name: str
 
@@ -95,7 +107,6 @@ class LstmClassifier:
         """
         if not refit or X is None or y is None:
             _ = self.store.read_model()
-            self.__class__ = _.__class__
             self.__dict__ = _.__dict__
             return
 
@@ -134,14 +145,108 @@ class LstmClassifier:
 
 
 class CnnClassifier:
-    def __init__(self): ...
+    def __init__(self, parameters: Cnn, store: Store):
+        _ = parameters
+        self.store = store
+        self.store.set_path(path=f"./{_.model_name}.model")
+        self.vocab_size = _.vocab_size
+        self.transform_size = _.transform_size
+        self.pad_len = _.pad_len
+        self.batch_size = _.batch_size
+        self.tokenizer = None
 
-    def _compile_(self, parameter: Parameter) -> None:
-        pass
+    def _compile_(self):
+        """
+        Compile models according Input/Output layers below
+        """
+        model = models.Sequential()
+        # Each word will be mapped to a vector with size = 100
+        # Each X input will have at maximum size = (pad_len) words
+        # The vocabulary = number of different words = vocab_size
+        model.add(Embedding(self.vocab_size, self.transform_size,
+                            input_length=self.pad_len))
+        model.add(layers.Conv1D(filters=128, kernel_size=3, activation='relu'))
+        model.add(layers.MaxPooling1D(2, 2))
+        model.add(layers.Conv1D(filters=64, kernel_size=3, activation='relu'))
+        model.add(layers.MaxPooling1D(2, 2))
+        model.add(layers.Conv1D(filters=32, kernel_size=3, activation='relu'))
+        model.add(layers.MaxPooling1D(2, 2))
+        model.add(layers.Conv1D(filters=16, kernel_size=3, activation='relu'))
+        model.add(layers.MaxPooling1D(2, 2))
+        model.add(layers.Dense(8, activation='relu'))
+        model.add(layers.Dense(1, activation='sigmoid'))
+        model.compile(
+            loss=tf.keras.losses.BinaryCrossentropy(),
+            optimizer=tf.keras.optimizers.legacy.Adam(1e-4),
+            metrics=['accuracy'],
+        )
+        self.model = model
 
-    def fit(self, X: any, y: any, refit: bool = False) -> None: ...
+    @staticmethod
+    def vectorize_data(X: any, pad_len: int = 1000, max_words: int = 30000) -> List[list]:
+        """
 
-    def predict(self, X): ...
+        Parameters
+        ----------
+        X
+        pad_len
+        max_words
+        Returns
+        -------
+
+        """
+        from src.preprocess.tfidf import TokenizerTf
+        tf_vector = TokenizerTf(max_words=max_words,
+                                max_len=pad_len)
+        tf_vector.fit(raw_documents=X)
+        return tf_vector.transform(raw_documents=X), tf_vector
+
+    def fit(self, X: any, y: any, refit: bool = False) -> None:
+        """
+        Fit tf.keras Model
+        :param refit: bool :: Force model refit
+        :param X: Array like, Input
+        :param y: Array like, Output
+        """
+        if not refit or X is None or y is None:
+            _ = self.store.read_model()
+            self.__dict__ = _.__dict__
+            return
+
+        X, self.tokenizer = self.vectorize_data(
+            X=X, pad_len=self.pad_len, max_words=self.vocab_size)
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, stratify=y, random_state=42, train_size=0.1)
+
+        # Compile model
+        self._compile_()
+        # Fit models
+        self.model.fit(
+            X_train, y_train,
+            epochs=1,
+            validation_data=(X_test, y_test),
+            batch_size=self.batch_size,
+        )
+
+        self.store.store_model(obj=self)
+
+    def predict(self, X: str | List[str]):
+        """
+        Returns prediction {1= True, 0 = False/Fake News}
+        :param X:
+        :return:
+        """
+        if not self.model:
+            _ = self.store.read_model()
+            self.__dict__ = _.__dict__
+
+        X = np.array(X)
+        sequences = self.tokenizer.transform(X)
+        X = tf.keras.preprocessing.sequence.pad_sequences(
+            sequences=sequences, maxlen=self.pad_len
+        )
+        logger.info("Prediction completed")
+        return (self.model.predict(X) > 0.5).astype("bool")
 
 
-__all__ = ['LstmClassifier']
+__all__ = ['LstmClassifier', 'CnnClassifier']
