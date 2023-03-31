@@ -14,7 +14,7 @@ Used datasets:
     source: https://github.com/roneysco/Fake.br-Corpus/tree/master/full_texts
 """
 import os
-import modin.pandas as pd
+import pandas as pd
 import swifter
 from typing import Tuple, List
 
@@ -27,32 +27,32 @@ from crawler import DATASET_PATH
 from src.logger import get_logger
 import spacy
 
-# setup swifter
-swifter.register_modin()
-
-FINAL_PATH = f"{DATASET_PATH}/preprocessed.csv"
-ORIGINAL_DATASET = f"{DATASET_PATH}/original_dataset.csv"
-
 # PATH OF DATASETS
+FINAL_PATH = f"{DATASET_PATH}/preprocessed.csv"
+ORIGINAL_DATASET = f"{DATASET_PATH}/original.csv"
 G1_PATH = f"{DATASET_PATH}/g1.csv"
 FAKE_CORPUS = f"{DATASET_PATH}/fake_corpus.csv"
 RUMOR_PATH = f"{DATASET_PATH}/rumor.csv"
 GPT_PATH = f"{DATASET_PATH}/chatgpt.csv"
 
+# NLTK depndencies
 nltk.download('stopwords', quiet=True)
 nltk.download('wordnet', quiet=True)
 nltk.download('omw-1.4', quiet=True)
 
-stemmer = SnowballStemmer(language="portuguese")
 STOP_WORDS = stopwords.words('portuguese')
 TRUE_WORDS = ['verdade', 'fato', 'real']
 FALSE_WORDS = ['fake', 'mentir', 'falso']
 REMOVE_DATA = TRUE_WORDS + FALSE_WORDS
-
+# logger
 logger = get_logger(__file__)
+
+# Spacy
 spacy.load('pt_core_news_lg')
 nlp = spacy.load("pt_core_news_lg")
 
+# Stemmer
+stemmer = SnowballStemmer(language="portuguese")
 REMOVE_DATA = [stemmer.stem(w) for w in REMOVE_DATA]
 
 

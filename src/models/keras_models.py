@@ -29,33 +29,6 @@ class Parameter(Protocol):
     model_name: str
 
 
-def compile_model(parameter: Parameter) -> tf.keras.Model:
-    """
-    Compile models according Input/Output layers below
-    """
-    # define the models
-    logger.info("Compiling model")
-    inputs = Input(shape=(None,), dtype="int32")
-    x = Embedding(
-        input_dim=parameter.max_features,
-        output_dim=parameter.layer_1)(inputs)
-    # Add 3 bidirectional LSTMs
-    x = Bidirectional(LSTM(units=parameter.layer_1,
-                           return_sequences=True))(x)
-    x = Bidirectional(LSTM(units=parameter.layer_2,
-                           return_sequences=True))(x)
-    x = Bidirectional(LSTM(units=parameter.layer_3))(x)
-    # Add a classifier
-    outputs = Dense(1, activation="sigmoid")(x)
-    model = tf.keras.Model(inputs, outputs)
-    # compile models
-    model.compile(loss=tf.keras.losses.BinaryCrossentropy(),
-                  optimizer=tf.keras.optimizers.legacy.Adam(1e-4),
-                  metrics=['accuracy'], )
-    logger.info("Model compiled")
-    return model
-
-
 class LstmClassifier:
     """
     Keras LSTM implementation to detect Fake News
@@ -87,6 +60,32 @@ class LstmClassifier:
         tf_vector.fit(raw_documents=X)
         return tf_vector.transform(raw_documents=X), tf_vector
 
+    def _compile_(self, parameter: Parameter) -> None:
+        """
+        Compile models according Input/Output layers below
+        """
+        # define the models
+        logger.info("Compiling model")
+        inputs = Input(shape=(None,), dtype="int32")
+        x = Embedding(
+            input_dim=parameter.max_features,
+            output_dim=parameter.layer_1)(inputs)
+        # Add 3 bidirectional LSTMs
+        x = Bidirectional(LSTM(units=parameter.layer_1,
+                               return_sequences=True))(x)
+        x = Bidirectional(LSTM(units=parameter.layer_2,
+                               return_sequences=True))(x)
+        x = Bidirectional(LSTM(units=parameter.layer_3))(x)
+        # Add a classifier
+        outputs = Dense(1, activation="sigmoid")(x)
+        model = tf.keras.Model(inputs, outputs)
+        model.compile(
+            loss=tf.keras.losses.BinaryCrossentropy(),
+            optimizer=tf.keras.optimizers.legacy.Adam(1e-4),
+            metrics=['accuracy'], )
+        logger.info("Model compiled")
+        self.model = model
+
     def fit(self, X: any, y: any, refit: bool = False) -> None:
         """
         Fit tf.keras Model
@@ -105,7 +104,8 @@ class LstmClassifier:
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, stratify=y, random_state=42, train_size=0.1)
 
-        self.model = compile_model(parameter=self.params)
+        # Compile model
+        self._compile_(parameter=self.params)
         # Fit models
         self.model.fit(X_train, y_train,
                        epochs=self.params.epochs,
@@ -115,7 +115,7 @@ class LstmClassifier:
 
         self.store.store_model(obj=self)
 
-    def predict(self, X):
+    def predict(self, X: str | List[str]):
         """
         Returns prediction {1= True, 0 = False/Fake News}
         :param X:
@@ -123,14 +123,25 @@ class LstmClassifier:
         """
         if not self.model:
             _ = self.store.read_model()
-            self.__class__ = _.__class__
             self.__dict__ = _.__dict__
 
         X = np.array(X)
-        X = self.vectorize_data(X)
-        X = tf.keras.preprocessing.sequence.pad_sequences(X, maxlen=self.params.pad_len)
+        sequences = self.tokenizer.transform(X)
+        X = tf.keras.preprocessing.sequence.pad_sequences(
+            sequences=sequences, maxlen=self.params.pad_len)
         logger.info("Prediction completed")
         return (self.model.predict(X) > 0.5).astype("bool")
+
+
+class CnnClassifier:
+    def __init__(self): ...
+
+    def _compile_(self, parameter: Parameter) -> None:
+        pass
+
+    def fit(self, X: any, y: any, refit: bool = False) -> None: ...
+
+    def predict(self, X): ...
 
 
 __all__ = ['LstmClassifier']
