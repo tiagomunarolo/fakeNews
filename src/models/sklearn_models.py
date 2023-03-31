@@ -56,7 +56,6 @@ class TermFrequencyClassifier:
         """
         if not refit or X is None or y is None:
             _ = self.store.read_model()
-            self.__class__ = _.__class__
             self.__dict__ = _.__dict__
             return
 
@@ -84,7 +83,6 @@ class TermFrequencyClassifier:
         """
         if not self.model:
             _ = self.store.read_model()
-            self.__class__ = _.__class__
             self.__dict__ = _.__dict__
 
         X = self.tf_vector.transform(X)
