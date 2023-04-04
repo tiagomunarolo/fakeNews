@@ -54,7 +54,7 @@ class LstmClassifier:
         self.model = None
 
     @staticmethod
-    def vectorize_data(X: any, pad_len: int = 1000, max_words: int = 30000) -> List[list]:
+    def vectorize_data(X: any, pad_len: int, max_words: int) -> List[list]:
         """
 
         Parameters
@@ -152,6 +152,7 @@ class CnnClassifier:
         self.vocab_size = _.vocab_size
         self.transform_size = _.transform_size
         self.pad_len = _.pad_len
+        self.epochs = _.epochs
         self.batch_size = _.batch_size
         self.tokenizer = None
 
@@ -162,18 +163,21 @@ class CnnClassifier:
         model = models.Sequential()
         # Each word will be mapped to a vector with size = 100
         # Each X input will have at maximum size = (pad_len) words
-        # The vocabulary = number of different words = vocab_size
-        model.add(Embedding(self.vocab_size, self.transform_size,
+        # The vocabulary = number of different words => vocab_size
+        model.add(Embedding(input_dim=self.vocab_size,
+                            output_dim=self.transform_size,
                             input_length=self.pad_len))
+        model.add(layers.Conv1D(filters=512, kernel_size=7, activation='relu'))
+        model.add(layers.MaxPooling1D(2, 2))
+        model.add(layers.Conv1D(filters=256, kernel_size=5, activation='relu'))
+        model.add(layers.MaxPooling1D(2, 2))
         model.add(layers.Conv1D(filters=128, kernel_size=3, activation='relu'))
         model.add(layers.MaxPooling1D(2, 2))
         model.add(layers.Conv1D(filters=64, kernel_size=3, activation='relu'))
         model.add(layers.MaxPooling1D(2, 2))
         model.add(layers.Conv1D(filters=32, kernel_size=3, activation='relu'))
         model.add(layers.MaxPooling1D(2, 2))
-        model.add(layers.Conv1D(filters=16, kernel_size=3, activation='relu'))
-        model.add(layers.MaxPooling1D(2, 2))
-        model.add(layers.Dense(8, activation='relu'))
+        model.add(layers.Dense(16, activation='relu'))
         model.add(layers.Dense(1, activation='sigmoid'))
         model.compile(
             loss=tf.keras.losses.BinaryCrossentropy(),
@@ -183,7 +187,7 @@ class CnnClassifier:
         self.model = model
 
     @staticmethod
-    def vectorize_data(X: any, pad_len: int = 1000, max_words: int = 30000) -> List[list]:
+    def vectorize_data(X: any, pad_len: int, max_words: int) -> List[list]:
         """
 
         Parameters
@@ -223,7 +227,7 @@ class CnnClassifier:
         # Fit models
         self.model.fit(
             X_train, y_train,
-            epochs=1,
+            epochs=self.epochs,
             validation_data=(X_test, y_test),
             batch_size=self.batch_size,
         )

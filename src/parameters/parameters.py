@@ -77,8 +77,8 @@ class RandomForestParameter:
 @dataclass
 class LstmParameter:
     # Text parameters
-    max_features: int = 30000  # max words in data dictionary
-    pad_len: int = 512
+    max_features: int = 20000  # number of != words in vocabulary
+    pad_len: int = 300 # max number of words in each sentence
     # Model parameters
     layer_1: int = 256
     layer_2: int = 128
@@ -91,10 +91,10 @@ class LstmParameter:
 
 @dataclass
 class CnnParameter:
-    vocab_size: int = 10000  # max words in data dictionary
-    pad_len: int = 300
+    vocab_size: int = 20000  # number of != words in vocabulary
+    pad_len: int = 300  # max number of words in each sentence
     epochs: int = 10
     batch_size: int = 32
-    transform_size: int = 200
+    transform_size: int = 100  # each word will be mapped to (1 x transform) size vector
     # model metadata
     model_name: str = 'cnn'

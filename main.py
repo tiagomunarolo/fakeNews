@@ -1,5 +1,6 @@
 import os
 import numpy as np
+from typing import List
 from src.parameters import RandomForestParameter as Rp
 from src.parameters import DecisionTreeParameter as Dt
 from src.parameters import SVCParameter as Svc
@@ -70,7 +71,7 @@ class Executor:
 class Predictor:
 
     @staticmethod
-    def predict(X: str):
+    def predict(X: str | List[str]):
         if not X:
             raise PredictionError
         X = manage_input(text=X)

@@ -10,7 +10,13 @@ class TokenizerTf:
     keras.preprocessing.text.Tokenizer
     """
 
-    def __init__(self, max_words: int = 40000, max_len: int = 10000):
+    def __init__(self, max_words: int = 20000, max_len: int = 300):
+        """
+        Parameters
+        ----------
+        max_words: int :: Number of words in vocabulary
+        max_len: int :: max length of each sequence
+        """
         self.is_fitted = False
         self.max_len = max_len
         self.tokenizer = Tokenizer(
