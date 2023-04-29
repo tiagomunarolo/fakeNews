@@ -14,13 +14,19 @@ class Driver(webdriver.Chrome):
     Web crawler driver - Gets information via selenium
     """
 
-    def __init__(self, url: str = None, headless=True):
+    def __init__(self, url: str = None, headless=False):
         option = Options()
         option.headless = headless
         self.url = url
         super().__init__(
             executable_path=ChromeDriverManager().install(),
             options=option)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args, **kwargs):
+        self.quit()
 
     def get_page(self, sleep_time=5) -> None:
         """

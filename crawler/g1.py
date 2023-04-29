@@ -1,47 +1,46 @@
+from typing import List
 from selenium.webdriver.common.by import By
 from crawler.driver import Driver
-from bs4 import BeautifulSoup
+from src.logger.logging import get_logger
+from bs4 import BeautifulSoup as Bs
 import pandas as pd
 from crawler import DATASET_PATH
 
 SCROLL = "window.scrollTo(0, document.body.scrollHeight);"
 HTML_PARSER = 'html.parser'
 GET_MORE = "VEJA MAIS"
-G1_PAGE = "https://g1.globo.com/fato-ou-fake/"
+G1_FATO_FAKE = "https://g1.globo.com/fato-ou-fake/"
+G1_POLITICS = "https://g1.globo.com/politica/"
+logger = get_logger(__file__)
 
 
-def build_dataset(html):
+def build_dataset(data: List[dict]) -> None:
     """
-    Builds G1 data
-    :param html: bs4 outer element
+    Builds G1 dataset given new articles
+    :param data: List
     """
-    soup = BeautifulSoup(html, HTML_PARSER)
-    df = pd.DataFrame(columns=['RESUMO', 'TEXTO'])
-    for article in soup.find_all(class_='feed-post-body'):
-        if not article.a:
-            continue
-        summary = article.find(class_='feed-post-body-resumo')
-        if not summary:
-            continue
-        data = {"RESUMO": [article.a.text], "TEXTO": [summary.text]}
-        df2 = pd.DataFrame(data=data)
+    df = pd.read_csv(f"{DATASET_PATH}/g1.csv", index_col=0)
+    for article in data:
+        df2 = pd.DataFrame(data=article)
         df = pd.concat([df, df2])
-
     df.to_csv(path_or_buf=f"{DATASET_PATH}/g1.csv")
 
 
-def get_g1_page():
+def get_news_g1(url: str = G1_POLITICS) -> None:
     """
-    Web scrap G1 page to get all news
+    Web scrap G1 page to get all news, given url
     :rtype: object
     """
-    driver = Driver(url=G1_PAGE)
     last_height = -1
-    driver.get_page()
+    label = True if url == G1_POLITICS else None
 
-    try:
+    # Opens driver context
+    with Driver(url=url) as driver:
+        # get base page
+        driver.get_page()
+        # while exists content to be extracted
         while True:
-            print("Keep scrolling...")
+            # scroll to ge new content
             driver.scroll_page()
             new_height = driver.get_height()
             if new_height == last_height:
@@ -51,10 +50,25 @@ def get_g1_page():
                 if new_height == last_height or not response:
                     break
             last_height = new_height
-    except Exception as e:
-        print(e)
+            logger.info("Keep scrolling...")
 
-    element = driver.find_element(value="bstn-launcher")
-    html = element.get_attribute('outerHTML')
-    driver.quit()
-    build_dataset(html=html)
+        # extract all page links
+        links = Bs(driver.page_source, features=HTML_PARSER).find_all('a', href=True)
+        links = [a['href'] for a in links if 'feed-post-link' in a.get('class', [])]
+        data = []
+        for _url in links:
+            # for each link, open article, and get news
+            driver.get(url=_url)
+            text = Bs(driver.page_source, features=HTML_PARSER).find_all('article')
+            summary = Bs(driver.page_source, features=HTML_PARSER).find_all('title')
+            if not text or not summary:
+                continue
+            text = text[0].text,
+            summary = summary[0].text
+            data.append({"LABEL": [label], "RESUMO": [summary], "TEXTO": [text]})
+        # builds final dataset
+        build_dataset(data=data)
+
+
+if __name__ == '__main__':
+    get_news_g1()

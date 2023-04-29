@@ -16,13 +16,13 @@ topics = ["vacinação", "horário eleitoral", "impostos", "educação",
           "direitos humanos", "religião", "corrupção", "crime", "liberdade de expressão",
           "ditadura", ]
 
-logger = get_logger(__file__)
-
 TRUE_CONTENT = "Faça um resumo de uma noticia real com mais de {min_} " \
                "e menos de {max_} palavras sobre {news} no Brasil cuja fonte seja BBC, UOL ou G1"
 
 FAKE_CONTENT = "Construa uma noticia falsa com mais de {min_}" \
                " e menos de {max_} palavras sobre {news} no Brasil"
+
+logger = get_logger(__file__)
 
 
 def build_generic_data(num_news: int = 100000):
@@ -34,16 +34,21 @@ def build_generic_data(num_news: int = 100000):
     else:
         df = pd.DataFrame(columns=['TEXT', 'LABEL'])
 
-    true_fake = TRUE_CONTENT
-    label_ = True
-
     for index in range(num_news):
         min_ = random.randint(50, 200)
         max_ = random.randint(201, 500)
         index_topic = index % len(topics)
         news_topic = topics[index_topic]
+        # random fake/true news option
+        tf = random.randint(0, 1)
+        if tf == 0:
+            true_fake, label_ = FAKE_CONTENT, False
+        else:
+            true_fake, label_ = TRUE_CONTENT, True
+
         logger.info(f"Building news({index + 1}): "
-                    f"[{min_}/{max_}] about {news_topic} - {label_}")
+                    f"[{min_}/{max_}] about {news_topic} ==> {str(label_).upper()}")
+
         try:
             completion = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
@@ -59,16 +64,10 @@ def build_generic_data(num_news: int = 100000):
             df = pd.concat([df, df2])
             df = df[['TEXT', 'LABEL']]
             df.to_csv(path_or_buf=f"{DATASET_PATH}/chatgpt.csv", index_label=False)
-            time.sleep(30)
-        except openai.error.OpenAIError:
-            time.sleep(60)
+            time.sleep(5)
+        except openai.error.OpenAIError as e:
+            logger.info(e)
+            time.sleep(5)
             continue
-
-        if true_fake == TRUE_CONTENT:
-            true_fake = FAKE_CONTENT
-            label_ = False
-        else:
-            true_fake = TRUE_CONTENT
-            label_ = True
 
     logger.info("DATASET_UPDATED")

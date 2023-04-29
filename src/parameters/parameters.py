@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.svm import SVC
+from sklearn.svm import LinearSVC
 import numpy as np
 
 
@@ -24,13 +24,11 @@ class SVCParameter:
     # Model parameters
     param_grid = dict({
         'C': [0.01, 0.1, 1, 10, 100],
-        'kernel': ['linear', 'poly',
-                   'rbf', 'sigmoid', ]
     })
 
     # model metadata
     model_name = 'svm'
-    model_type = SVC
+    model_type = LinearSVC
 
 
 @dataclass
@@ -78,7 +76,7 @@ class RandomForestParameter:
 class LstmParameter:
     # Text parameters
     max_features: int = 20000  # number of != words in vocabulary
-    pad_len: int = 300 # max number of words in each sentence
+    pad_len: int = 300  # max number of words in each sentence
     # Model parameters
     layer_1: int = 256
     layer_2: int = 128

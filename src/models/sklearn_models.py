@@ -65,8 +65,7 @@ class TermFrequencyClassifier:
         grid = GridSearchCV(estimator=estimator,
                             param_grid=self.param_grid,
                             cv=5,
-                            verbose=0,
-                            return_train_score=False, )
+                            verbose=5)
 
         grid.fit(X=X, y=y)
         logger.info(msg=f"MODEL_FITTING: {self.model_name} DONE!")

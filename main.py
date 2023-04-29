@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from typing import List
+from typing import List, Union
 from src.parameters import RandomForestParameter as Rp
 from src.parameters import DecisionTreeParameter as Dt
 from src.parameters import SVCParameter as Svc
@@ -15,18 +15,18 @@ from src.models.interfaces import ObjectStore as Store
 from src.utils import manage_input
 from src.errors import PredictionError, ModelNotImplementedError
 
-__LOGISTIC__ = "LOGISTIC"
-__XGBOOST__ = "XGBOOST"
-__RANDOM_FOREST__ = "RANDOM_FOREST"
-__SVM__ = "SVM"
-__DECISION_TREE__ = "DECISION_TREE"
-__LSTM__ = "LSTM"
-__CNN__ = "CNN"
+LOGISTIC = "LOGISTIC"
+XGBOOST = "XGBOOST"
+RANDOM_FOREST = "RANDOM_FOREST"
+SVM = "SVM"
+DECISION_TREE = "DECISION_TREE"
+LSTM = "LSTM"
+CNN = "CNN"
 
-__MODEL__ = os.getenv("MODEL", "LOGISTIC")
-__DATA__ = os.getenv('DATA', "./data/preprocessed.csv")
-__FORCE__ = bool(os.getenv('FORCE', False))
-__PREDICT__ = bool(os.getenv('PREDICT', True))
+MODEL = os.getenv("MODEL", "LOGISTIC")
+DATA = os.getenv('DATA', "./data/preprocessed.csv")
+FORCE = bool(os.getenv('FORCE', False))
+PREDICT = bool(os.getenv('PREDICT', True))
 
 
 class Executor:
@@ -43,25 +43,25 @@ class Executor:
         """
         from src.utils import get_xy_from_dataset
         X, y = get_xy_from_dataset(path=path)
-        if model == __LOGISTIC__:
+        if model == LOGISTIC:
             Tfc(parameters=Lr, store=Store()). \
                 fit(X=X, y=y, refit=refit)
-        elif model == __XGBOOST__:
+        elif model == XGBOOST:
             Tfc(parameters=Xp, store=Store()). \
                 fit(X=X, y=y, refit=refit)
-        elif model == __RANDOM_FOREST__:
+        elif model == RANDOM_FOREST:
             Tfc(parameters=Rp, store=Store()). \
                 fit(X=X, y=y, refit=refit)
-        elif model == __SVM__:
+        elif model == SVM:
             Tfc(parameters=Svc, store=Store()) \
                 .fit(X=X, y=y, refit=refit)
-        elif model == __DECISION_TREE__:
+        elif model == DECISION_TREE:
             Tfc(parameters=Dt, store=Store()). \
                 fit(X=X, y=y, refit=refit)
-        elif model == __LSTM__:
+        elif model == LSTM:
             Lstm(parameters=Lp, store=Store()). \
                 fit(X=X, y=y, refit=refit)
-        elif model == __CNN__:
+        elif model == CNN:
             Cnn(parameters=Cp, store=Store()). \
                 fit(X=X, y=y, refit=refit)
         else:
@@ -71,7 +71,7 @@ class Executor:
 class Predictor:
 
     @staticmethod
-    def predict(X: str | List[str]):
+    def predict(X: Union[str, List[str]]):
         if not X:
             raise PredictionError
         X = manage_input(text=X)
@@ -87,8 +87,8 @@ class Predictor:
         print(final_response == 1)
 
 
-if __name__ == '__main__':
-    if __PREDICT__:
+if __name__ == 'main':
+    if PREDICT:
         Predictor.predict(X=input())
     else:
-        Executor.run(model=__MODEL__, path=__DATA__, refit=__FORCE__)
+        Executor.run(model=MODEL, path=DATA, refit=FORCE)

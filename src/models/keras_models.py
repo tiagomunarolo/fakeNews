@@ -7,7 +7,7 @@ from keras import models, layers
 from keras.layers import Input, Dense, Bidirectional, LSTM, Embedding
 from sklearn.model_selection import train_test_split
 from src.models.interfaces import Store
-from typing import List, Protocol
+from typing import List, Protocol, Union
 from src.logger.logging import get_logger
 
 logger = get_logger(__file__)
@@ -126,7 +126,7 @@ class LstmClassifier:
 
         self.store.store_model(obj=self)
 
-    def predict(self, X: str | List[str]):
+    def predict(self, X: Union[str, List[str]]):
         """
         Returns prediction {1= True, 0 = False/Fake News}
         :param X:
@@ -234,7 +234,7 @@ class CnnClassifier:
 
         self.store.store_model(obj=self)
 
-    def predict(self, X: str | List[str]):
+    def predict(self, X: Union[str, List[str]]):
         """
         Returns prediction {1= True, 0 = False/Fake News}
         :param X:
