@@ -8,12 +8,33 @@ from crawler import DATASET_PATH
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-topics = ["vacinação", "horário eleitoral", "impostos", "educação",
-          "saúde", "política", "crimes políticos", "prefeitura", "polícia",
-          "armamento", "economia", "guerra", "relações internacionais",
-          "democracia", "comunismo", "lei", "sistema eleitoral", "votação",
-          "eleição", "constituição", "governo", "ministério",
-          "direitos humanos", "religião", "corrupção", "crime", "liberdade de expressão",
+topics = ["vacinação",
+          "horário eleitoral",
+          "impostos",
+          "educação",
+          "saúde",
+          "política",
+          "crimes políticos",
+          "prefeitura",
+          "polícia",
+          "armamento",
+          "economia",
+          "guerra",
+          "relações internacionais",
+          "democracia",
+          "comunismo",
+          "lei",
+          "sistema eleitoral",
+          "votação",
+          "eleição",
+          "constituição",
+          "governo",
+          "ministério",
+          "direitos humanos",
+          "religião",
+          "corrupção",
+          "crime",
+          "liberdade de expressão",
           "ditadura", ]
 
 TRUE_CONTENT = "Faça um resumo de uma noticia real com mais de {min_} " \
@@ -52,6 +73,7 @@ def build_generic_data(num_news: int = 100000):
         try:
             completion = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
+                max_tokens=max_,
                 messages=[
                     {"role": "user",
                      "content": true_fake.format(min_=min_, max_=max_, news=news_topic)}
@@ -71,3 +93,7 @@ def build_generic_data(num_news: int = 100000):
             continue
 
     logger.info("DATASET_UPDATED")
+
+
+if __name__ == '__main__':
+    build_generic_data()
