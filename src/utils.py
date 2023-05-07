@@ -41,6 +41,10 @@ nltk.download('wordnet', quiet=True)
 nltk.download('omw-1.4', quiet=True)
 
 STOP_WORDS = stopwords.words('portuguese')
+stop = " ".join(STOP_WORDS)
+stop = normalize('NFKD', stop). \
+    encode('ASCII', 'ignore').decode('ASCII')
+STOP_WORDS = stop.split()
 TRUE_WORDS = ['verdade', 'fato', 'real']
 FALSE_WORDS = ['fake', 'mentir', 'falso']
 REMOVE_DATA = TRUE_WORDS + FALSE_WORDS
