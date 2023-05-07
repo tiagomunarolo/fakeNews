@@ -109,17 +109,16 @@ def create_final_dataset() -> None:
     """STEP 1: G1 data"""
     # Reads g1.csv (G1 Fato ou Fake source)
     df_g1 = pd.read_csv(G1_PATH, index_col=0).reset_index(drop=True)
+    df_g1['TEXT'] = df_g1['RESUMO'] + " " + df_g1['TEXTO']
+    df_g1.TEXT = df_g1.TEXT.str.lower()
+    # keep true labels
+    df_g1_true = df_g1[df_g1.LABEL == True]
+    df_g1 = df_g1[~df_g1.index.isin(df_g1_true.index)]
     # Drop entries that can be dubious (either false or true)
-    df_keep = df_g1['RESUMO'].apply(lambda x: x.lower().startswith("é #fato") or x.lower().startswith("é #fake"))
-    df_g1 = df_g1[df_keep]
+    df_g1 = df_g1[df_g1['TEXT'].apply(lambda x: x.startswith("é #fato") or x.startswith("é #fake"))]
     # Label data according to it's content
-    df_g1_aux = pd.DataFrame()
-    df_g1_aux2 = pd.DataFrame()
-    df_g1_aux['TEXT'] = df_g1['RESUMO']
-    df_g1_aux['LABEL'] = df_g1['RESUMO'].apply(lambda x: False if "#fake" in x.lower() else True)
-    df_g1_aux2['TEXT'] = df_g1['TEXTO']
-    df_g1_aux2['LABEL'] = True
-    df_g1 = pd.concat([df_g1_aux, df_g1_aux2])
+    df_g1['LABEL'] = df_g1['TEXT'].apply(lambda x: False if "#fake" in x.lower() else True)
+    df_g1 = pd.concat([df_g1_true, df_g1])
     df_g1['TEXT_SIZE'] = df_g1.TEXT.apply(lambda x: len(x.split()))
     df_g1['SOURCE'] = 'G1'
     df_g1 = df_g1[columns_used]
