@@ -6,8 +6,9 @@ import tensorflow as tf
 from keras import models, layers
 from keras.layers import Input, Dense, Bidirectional, LSTM, Embedding
 from sklearn.model_selection import train_test_split
-from src.models.interfaces import Store
-from typing import List, Protocol, Union
+from src.models.interfaces import Store, ParameterCnn, ParameterLstm
+from src.models.object_store import ObjectStore
+from typing import List, Union
 from src.logger.logging import get_logger
 
 logger = get_logger(__file__)
@@ -17,36 +18,12 @@ gpus = tf.config.experimental.list_physical_devices('GPU')
 tf.config.experimental.set_visible_devices(gpus[0], 'GPU')
 
 
-class Parameter(Protocol):
-    # HyperParameters of generic model
-    max_features: int  # max words in data dictionary
-    pad_len: int
-    layer_1: int
-    layer_2: int
-    layer_3: int
-    epochs: int
-    batch_size: int
-    # model metadata
-    model_name: str
-
-
-class Cnn(Protocol):
-    # HyperParameters of generic model
-    vocab_size: int  # max words in data dictionary
-    pad_len: int
-    epochs: int
-    batch_size: int
-    transform_size: int
-    # model metadata
-    model_name: str
-
-
 class LstmClassifier:
     """
     Keras LSTM implementation to detect Fake News
     """
 
-    def __init__(self, parameters: Parameter, store: Store):
+    def __init__(self, parameters: ParameterLstm, store: Store = ObjectStore()):
         self.store = store
         self.params = parameters
         self.store.set_path(path=f"./{parameters.model_name}.model")
@@ -72,7 +49,7 @@ class LstmClassifier:
         tf_vector.fit(raw_documents=X)
         return tf_vector.transform(raw_documents=X), tf_vector
 
-    def _compile_(self, parameter: Parameter) -> None:
+    def _compile(self, parameter: ParameterLstm) -> None:
         """
         Compile models according Input/Output layers below
         """
@@ -116,7 +93,7 @@ class LstmClassifier:
             X, y, stratify=y, random_state=42, train_size=0.1)
 
         # Compile model
-        self._compile_(parameter=self.params)
+        self._compile(parameter=self.params)
         # Fit models
         self.model.fit(X_train, y_train,
                        epochs=self.params.epochs,
@@ -145,7 +122,7 @@ class LstmClassifier:
 
 
 class CnnClassifier:
-    def __init__(self, parameters: Cnn, store: Store):
+    def __init__(self, parameters: ParameterCnn, store: Store = ObjectStore()):
         _ = parameters
         self.store = store
         self.store.set_path(path=f"./{_.model_name}.model")
@@ -156,7 +133,7 @@ class CnnClassifier:
         self.batch_size = _.batch_size
         self.tokenizer = None
 
-    def _compile_(self):
+    def _compile(self):
         """
         Compile models according Input/Output layers below
         """
@@ -223,7 +200,7 @@ class CnnClassifier:
             X, y, stratify=y, random_state=42, train_size=0.1)
 
         # Compile model
-        self._compile_()
+        self._compile()
         # Fit models
         self.model.fit(
             X_train, y_train,
@@ -240,7 +217,7 @@ class CnnClassifier:
         :param X:
         :return:
         """
-        if not self.model:
+        if not hasattr(self, 'model') or not self.model:
             _ = self.store.read_model()
             self.__dict__ = _.__dict__
 

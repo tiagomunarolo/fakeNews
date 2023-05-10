@@ -7,6 +7,7 @@ from typing import Protocol
 from sklearn.model_selection import GridSearchCV
 from src.logger.logging import get_logger
 from src.models.interfaces import Store
+from src.models.object_store import ObjectStore
 
 warnings.filterwarnings(action="ignore", category=FutureWarning)
 warnings.filterwarnings(action="ignore", category=UserWarning)
@@ -26,7 +27,7 @@ class TermFrequencyClassifier:
     Base Classifier Model Tf-IDF
     """
 
-    def __init__(self, parameters: Parameter, store: Store):
+    def __init__(self, parameters: Parameter, store: Store = ObjectStore()):
         """Init Model"""
         self.store = store
         self.store.set_path(path=f"./{parameters.model_name}.model")
@@ -37,14 +38,14 @@ class TermFrequencyClassifier:
         self.tf_vector = None
 
     @staticmethod
-    def vectorize_data(X: any, y):
+    def vectorize_data(X: any):
         """
         Vectorize data and returns X and tf-idf object
         """
         from src.preprocess.tfidf import TfIDF
         logger.info(msg="VECTORIZE_DATA ... ")
         tf_vector = TfIDF()
-        tf_vector.fit(raw_documents=X, y=y)
+        tf_vector.fit(raw_documents=X)
         return tf_vector.transform(X), tf_vector
 
     def fit(self, X: any, y: any, refit: bool = False) -> None:
@@ -59,7 +60,7 @@ class TermFrequencyClassifier:
             self.__dict__ = _.__dict__
             return
 
-        X, self.tf_vector = self.vectorize_data(X=X, y=y)
+        X, self.tf_vector = self.vectorize_data(X=X)
         estimator = self.model_type(random_state=42)
         logger.info(msg=f"FITTING_MODEL: {self.model_name} STARTED")
         grid = GridSearchCV(estimator=estimator,

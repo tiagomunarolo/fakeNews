@@ -10,7 +10,7 @@ import numpy as np
 class XgBoostParameter:
     # Model parameters
     param_grid = dict({
-        "learning_rate": [0.1, 1, 10],
+        "learning_rate": [0.01, 0.1, 1, 10],
         "n_estimators": [50, 100, 150, 200]
     })
 
@@ -75,7 +75,7 @@ class RandomForestParameter:
 @dataclass
 class LstmParameter:
     # Text parameters
-    max_features: int = 20000  # number of != words in vocabulary
+    max_features: int = 40000  # number of != words in vocabulary
     pad_len: int = 300  # max number of words in each sentence
     # Model parameters
     layer_1: int = 256
@@ -89,7 +89,7 @@ class LstmParameter:
 
 @dataclass
 class CnnParameter:
-    vocab_size: int = 20000  # number of != words in vocabulary
+    vocab_size: int = 40000  # number of != words in vocabulary
     pad_len: int = 300  # max number of words in each sentence
     epochs: int = 10
     batch_size: int = 32
