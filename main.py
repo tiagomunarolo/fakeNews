@@ -36,8 +36,7 @@ class Executor:
         X, y = get_dataset(path=path)
         if model not in MODELS:
             raise ModelNotImplementedError(f"{model} Not Implemented!")
-
-        if model == CNN:
+        elif model == CNN:
             classifier = CnnClassifier
         elif model == LSTM:
             classifier = LstmClassifier
