@@ -25,6 +25,13 @@ class ParameterCnn(Protocol):
     model_name: str
 
 
+class ParameterSciKit(Protocol):
+    # HyperParameters of generic model
+    model_name: str
+    model_type: any
+    param_grid: dict
+
+
 class Store(Protocol):
     path: str
 

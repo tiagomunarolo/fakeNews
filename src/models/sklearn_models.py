@@ -3,10 +3,9 @@ Base Classification Model Class - For Generic objects
 SKLEARN implementations
 """
 import warnings
-from typing import Protocol
 from sklearn.model_selection import GridSearchCV
 from src.logger.logging import get_logger
-from src.models.interfaces import Store
+from src.models.interfaces import Store, ParameterSciKit
 from src.models.object_store import ObjectStore
 
 warnings.filterwarnings(action="ignore", category=FutureWarning)
@@ -15,19 +14,12 @@ warnings.filterwarnings(action="ignore", category=UserWarning)
 logger = get_logger(__file__)
 
 
-class Parameter(Protocol):
-    # HyperParameters of generic model
-    model_name: str
-    model_type: any
-    param_grid: dict
-
-
 class TermFrequencyClassifier:
     """
     Base Classifier Model Tf-IDF
     """
 
-    def __init__(self, parameters: Parameter, store: Store = ObjectStore()):
+    def __init__(self, parameters: ParameterSciKit, store: Store = ObjectStore()):
         """Init Model"""
         self.store = store
         self.store.set_path(path=f"./{parameters.model_name}.model")
