@@ -36,8 +36,8 @@ class LogisticParameter:
     # Model parameters
     param_grid = dict({
         'penalty': ['l1', 'l2'],
-        'C': np.logspace(-4, 4, 20),
-        'solver': ['liblinear']
+        'C': [1e-4, 1e-3, 1e-2, 0.1, 1, 10],
+        'solver': ['liblinear', 'saga']
     })
 
     # model metadata

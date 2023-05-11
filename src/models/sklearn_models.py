@@ -4,6 +4,9 @@ SKLEARN implementations
 """
 import warnings
 from sklearn.model_selection import GridSearchCV
+from sklearn.pipeline import Pipeline
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.decomposition import TruncatedSVD
 from src.logger.logging import get_logger
 from src.models.interfaces import Store, ParameterSciKit
 from src.models.object_store import ObjectStore
@@ -14,7 +17,7 @@ warnings.filterwarnings(action="ignore", category=UserWarning)
 logger = get_logger(__file__)
 
 
-class TermFrequencyClassifier:
+class TfClassifier:
     """
     Base Classifier Model Tf-IDF
     """
@@ -29,17 +32,6 @@ class TermFrequencyClassifier:
         self.model = None
         self.tf_vector = None
 
-    @staticmethod
-    def vectorize_data(X: any):
-        """
-        Vectorize data and returns X and tf-idf object
-        """
-        from src.preprocess.tfidf import TfIDF
-        logger.info(msg="VECTORIZE_DATA ... ")
-        tf_vector = TfIDF()
-        tf_vector.fit(raw_documents=X)
-        return tf_vector.transform(X), tf_vector
-
     def fit(self, X: any, y: any, refit: bool = False) -> None:
         """
         Fit Generic provided models with GridSearchCV
@@ -52,15 +44,35 @@ class TermFrequencyClassifier:
             self.__dict__ = _.__dict__
             return
 
-        X, self.tf_vector = self.vectorize_data(X=X)
         estimator = self.model_type(random_state=42)
-        logger.info(msg=f"FITTING_MODEL: {self.model_name} STARTED")
-        grid = GridSearchCV(estimator=estimator,
-                            param_grid=self.param_grid,
-                            cv=5,
-                            verbose=5)
+        pipeline = Pipeline([
+            # Ignore terms that appears less than 10 and more than 1000 docs
+            # Remove infrequent and too frequent words
+            ('tfidf', TfidfVectorizer(min_df=10, max_df=1000)),
+            # Reduces Input Dimension via Principal Component Analysis
+            ('pca_svd', TruncatedSVD(n_components=1000)),
+            (f'{self.model_name}', estimator)
+        ])
 
-        grid.fit(X=X, y=y)
+        tf_idf_params = {
+            # Consider UniGrams and BiGrams
+            'tfidf__ngram_range': [(1, 1), (1, 2)],
+            'tfidf__norm': ['l1', 'l2']
+        }
+
+        param_grid = {f"{self.model_name}__{k}": v for k, v in self.param_grid.items()}
+        param_grid = {**param_grid, **tf_idf_params}
+        logger.info(msg=f"FITTING_MODEL: {self.model_name} STARTED")
+        grid = GridSearchCV(estimator=pipeline,
+                            param_grid=param_grid,
+                            cv=5,
+                            verbose=5,
+                            scoring=('r2', 'roc_auc', 'f1'),
+                            refit='f1',
+                            n_jobs=-1,
+                            )
+
+        grid.fit(X=X, y=y.astype(int))
         logger.info(msg=f"MODEL_FITTING: {self.model_name} DONE!")
         # select best models
         self.model = grid.best_estimator_
@@ -81,4 +93,4 @@ class TermFrequencyClassifier:
         return self.model.predict(X=X)
 
 
-__all__ = ['TermFrequencyClassifier', ]
+__all__ = ['TfClassifier', ]

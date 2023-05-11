@@ -1,8 +1,7 @@
-import os
 from typing import List, Union
 from src.models import LstmClassifier
 from src.models import CnnClassifier
-from src.models import TermFrequencyClassifier
+from src.models import TfClassifier
 from src.errors import ModelNotImplementedError
 from src.preprocess import get_dataset
 from src.parameters import *
@@ -41,7 +40,7 @@ class Executor:
         elif model == LSTM:
             classifier = LstmClassifier
         else:
-            classifier = TermFrequencyClassifier
+            classifier = TfClassifier
 
         param = CLASSIFIER_PARAMETERS.get(model)
         classifier(parameters=param).fit(X=X, y=y, refit=refit)

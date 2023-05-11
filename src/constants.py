@@ -1,8 +1,10 @@
 """
 Define MODELS options
 """
-from crawler import DATASET_PATH
+from . import ROOT
+import os
 
+DATASET_PATH = ROOT + os.sep + "data" + os.sep
 # PATH OF DATASETS
 FINAL_PATH = f"{DATASET_PATH}/preprocessed.csv"
 ORIGINAL_DATASET = f"{DATASET_PATH}/original.csv"
