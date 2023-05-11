@@ -6,7 +6,7 @@ import warnings
 from sklearn.model_selection import GridSearchCV
 from sklearn.pipeline import Pipeline
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.decomposition import TruncatedSVD
+from sklearn.feature_selection import SelectKBest, chi2
 from src.logger.logging import get_logger
 from src.models.interfaces import Store, ParameterSciKit
 from src.models.object_store import ObjectStore
@@ -49,8 +49,8 @@ class TfClassifier:
             # Ignore terms that appears less than 10 and more than 1000 docs
             # Remove infrequent and too frequent words
             ('tfidf', TfidfVectorizer(min_df=10, max_df=1000)),
-            # Reduces Input Dimension via Principal Component Analysis
-            ('pca_svd', TruncatedSVD(n_components=1000)),
+            # Reduces Input Dimension via Chi_square Selection
+            ('k_best', SelectKBest(score_func=chi2, k=5000)),
             (f'{self.model_name}', estimator)
         ])
 
@@ -69,7 +69,6 @@ class TfClassifier:
                             verbose=5,
                             scoring=('r2', 'roc_auc', 'f1'),
                             refit='f1',
-                            n_jobs=-1,
                             )
 
         grid.fit(X=X, y=y.astype(int))
