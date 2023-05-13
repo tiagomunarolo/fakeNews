@@ -1,3 +1,4 @@
+import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
 from nltk.stem import SnowballStemmer
 from unicodedata import normalize
@@ -83,4 +84,8 @@ class CustomTransformer(BaseEstimator, TransformerMixin):
         -------
 
         """
+        if isinstance(X, str):
+            X = pd.Series(X)
+        elif isinstance(X, list):
+            X = pd.Series(X)
         return X.apply(self.clean_text)
