@@ -30,15 +30,3 @@ class ParameterSciKit(Protocol):
     model_name: str
     model_type: any
     param_grid: dict
-
-
-class Store(Protocol):
-    path: str
-
-    def path_exists(self) -> bool: ...
-
-    def store_model(self, obj: any) -> None: ...
-
-    def read_model(self): ...
-
-    def set_path(self, path: str) -> None: ...

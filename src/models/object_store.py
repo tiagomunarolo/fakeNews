@@ -1,20 +1,15 @@
-from src.models.interfaces import Store
 from dataclasses import dataclass
 import os
 import pickle
-from src.logger.logging import get_logger
-
-logger = get_logger(__file__)
 
 
 @dataclass
-class ObjectStore(Store):
-    """\
+class ObjectStore:
+    """
     Generic Object Store Class
     """
-    path: str = ""
 
-    def set_path(self, path: str) -> None:
+    def __init__(self, path):
         self.path = path
 
     @property
@@ -30,19 +25,15 @@ class ObjectStore(Store):
         Save models to ./models dir
         """
         with open(self.path, 'wb') as file:
-            logger.info(msg=f"STORING_MODEL: {self.path}")
             pickle.dump(obj=obj, file=file)
-            logger.info(msg=f"MODEL_STORED: {self.path}")
 
     def read_model(self):
         """
         Reads Stored model from provided dir
         superclass
         """
-        logger.info(msg=f"READING_MODEL: {self.path}")
         if not self.path_exists:
             raise FileNotFoundError(f'{self.path} does not exists')
         with open(self.path, 'rb') as file:
             model = pickle.load(file=file)
-            logger.info(msg=f"MODEL_LOADED: {self.path} COMPLETED")
             return model

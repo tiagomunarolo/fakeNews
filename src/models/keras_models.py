@@ -6,7 +6,7 @@ import tensorflow as tf
 from keras import models, layers
 from keras.layers import Input, Dense, Bidirectional, LSTM, Embedding
 from sklearn.model_selection import train_test_split
-from src.models.interfaces import Store, ParameterCnn, ParameterLstm
+from src.models.interfaces import ParameterCnn, ParameterLstm
 from src.models.object_store import ObjectStore
 from typing import List, Union
 from src.logger.logging import get_logger
@@ -23,10 +23,9 @@ class LstmClassifier:
     Keras LSTM implementation to detect Fake News
     """
 
-    def __init__(self, parameters: ParameterLstm, store: Store = ObjectStore()):
-        self.store = store
+    def __init__(self, parameters: ParameterLstm):
+        self.store = ObjectStore(path=f"./{parameters.model_name}.model")
         self.params = parameters
-        self.store.set_path(path=f"./{parameters.model_name}.model")
         self.tokenizer = None
         self.model = None
 
@@ -122,10 +121,9 @@ class LstmClassifier:
 
 
 class CnnClassifier:
-    def __init__(self, parameters: ParameterCnn, store: Store = ObjectStore()):
+    def __init__(self, parameters: ParameterCnn):
         _ = parameters
-        self.store = store
-        self.store.set_path(path=f"./{_.model_name}.model")
+        self.store = ObjectStore(path=f"./{_.model_name}.model")
         self.vocab_size = _.vocab_size
         self.transform_size = _.transform_size
         self.pad_len = _.pad_len

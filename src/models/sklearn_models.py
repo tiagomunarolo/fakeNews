@@ -8,7 +8,8 @@ from sklearn.pipeline import Pipeline
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.feature_selection import SelectKBest, chi2
 from src.logger.logging import get_logger
-from src.models.interfaces import Store, ParameterSciKit
+from src.preprocess.transformer import CustomTransformer
+from src.models.interfaces import ParameterSciKit
 from src.models.object_store import ObjectStore
 
 warnings.filterwarnings(action="ignore", category=FutureWarning)
@@ -22,27 +23,32 @@ class TfClassifier:
     Base Classifier Model Tf-IDF
     """
 
-    def __init__(self, parameters: ParameterSciKit, store: Store = ObjectStore()):
+    def __init__(self, parameters: ParameterSciKit):
         """Init Model"""
-        self.store = store
-        self.store.set_path(path=f"./{parameters.model_name}.model")
+        self.store = ObjectStore(path=f"./{parameters.model_name}.model")
         self.model_type = parameters.model_type
         self.param_grid = parameters.param_grid
         self.model_name = parameters.model_name
         self.model = None
         self.tf_vector = None
 
-    def fit(self, X: any, y: any, refit: bool = False) -> None:
+    def fit(self, X: any, y: any, refit: bool = False, clean_data=False) -> None:
         """
         Fit Generic provided models with GridSearchCV
         :param y: Array like, Output
         :param X: Array like, Input
+        :param clean_data: Force Clean Data
+
         :type refit: bool: Force fit models if it no longer exists
+
         """
         if not refit or X is None or y is None:
             _ = self.store.read_model()
             self.__dict__ = _.__dict__
             return
+
+        if clean_data:
+            X = CustomTransformer().fit_transform(X)
 
         estimator = self.model_type(random_state=42)
         pipeline = Pipeline([
@@ -79,16 +85,17 @@ class TfClassifier:
         # Store models
         self.store.store_model(obj=self)
 
-    def predict(self, X):
+    def predict(self, X, clean_data=True):
         """
         :parameter: X: Text list to be predicted
+        :param clean_data: Force Clean Data
         Generates prediction, given a text
         """
         if not self.model:
             _ = self.store.read_model()
             self.__dict__ = _.__dict__
-
-        X = self.tf_vector.transform(X)
+        if clean_data:
+            X = CustomTransformer().fit_transform(X=X)
         return self.model.predict(X=X)
 
 

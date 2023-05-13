@@ -3,7 +3,7 @@ from src.models import LstmClassifier
 from src.models import CnnClassifier
 from src.models import TfClassifier
 from src.errors import ModelNotImplementedError
-from src.preprocess import get_dataset
+from src.preprocess import load_dataset
 from src.parameters import *
 from src.constants import *
 
@@ -32,7 +32,7 @@ class Executor:
         path: str :: path of data training
         refit: bool :: force models to be refitted
         """
-        X, y = get_dataset(path=path)
+        X, y = load_dataset(path=path)
         if model not in MODELS:
             raise ModelNotImplementedError(f"{model} Not Implemented!")
         elif model == CNN:

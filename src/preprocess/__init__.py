@@ -1,3 +1,3 @@
-from .utils import DataBuilder
-from .utils import get_dataset
+from .utils import load_dataset
+from .utils import build_dataset
 from .tfidf import TokenizerTf
