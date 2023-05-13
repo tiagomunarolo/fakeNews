@@ -2,6 +2,7 @@
 Keras LSTM implementation for fake news detection
 """
 import numpy as np
+import sklearn
 import tensorflow as tf
 from keras import models, layers
 from keras.layers import Input, Dense, Bidirectional, LSTM, Embedding
@@ -70,12 +71,12 @@ class KerasBaseClassifier:
             return
         if clean_data:
             X = CustomTransformer().fit_transform(X=X)
-
+        X, y = sklearn.utils.shuffle(X, y, random_state=42)
         max_words = self.params.max_features
         X, self.tokenizer = self.vectorize_data(
             X=X, pad_len=self.params.pad_len, max_words=max_words)
         X_train, X_test, y_train, y_test = train_test_split(
-            X, y, stratify=y, random_state=42, test_size=0.1)
+            X, y, stratify=y, random_state=42, test_size=0.2, shuffle=True)
 
         # Compile model
         self._compile()

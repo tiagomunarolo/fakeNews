@@ -3,6 +3,8 @@ Base Classification Model Class - For Generic objects
 SKLEARN implementations
 """
 import warnings
+
+import sklearn.utils
 from sklearn.model_selection import GridSearchCV
 from sklearn.pipeline import Pipeline
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -50,6 +52,8 @@ class TfClassifier:
         if clean_data:
             X = CustomTransformer().fit_transform(X)
 
+        X, y = sklearn.utils.shuffle(X, y, random_state=42)
+
         estimator = self.model_type(random_state=42)
         pipeline = Pipeline([
             # Ignore terms that appears less than 10 and more than 1000 docs
@@ -74,7 +78,7 @@ class TfClassifier:
                             cv=5,
                             verbose=5,
                             scoring=('r2', 'roc_auc', 'f1'),
-                            refit='f1',
+                            refit='roc_auc',
                             )
 
         grid.fit(X=X, y=y.astype(int))
