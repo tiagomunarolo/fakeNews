@@ -5,18 +5,19 @@ class ParameterLstm(Protocol):
     # HyperParameters of generic model
     max_features: int  # max words in data dictionary
     pad_len: int
+    epochs: int
+    batch_size: int
+    # layers
     layer_1: int
     layer_2: int
     layer_3: int
-    epochs: int
-    batch_size: int
     # model metadata
     model_name: str
 
 
 class ParameterCnn(Protocol):
     # HyperParameters of generic model
-    vocab_size: int  # max words in data dictionary
+    max_features: int  # max words in data dictionary
     pad_len: int
     epochs: int
     batch_size: int

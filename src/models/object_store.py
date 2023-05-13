@@ -25,7 +25,7 @@ class ObjectStore:
         Save models to ./models dir
         """
         with open(self.path, 'wb') as file:
-            pickle.dump(obj=obj, file=file)
+            pickle.dump(obj, file, protocol=pickle.HIGHEST_PROTOCOL)
 
     def read_model(self):
         """

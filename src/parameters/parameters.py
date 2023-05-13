@@ -77,19 +77,20 @@ class LstmParameter:
     # Text parameters
     max_features: int = 40000  # number of != words in vocabulary
     pad_len: int = 300  # max number of words in each sentence
+    epochs: int = 10
+    batch_size: int = 32
     # Model parameters
     layer_1: int = 256
     layer_2: int = 128
     layer_3: int = 56
-    epochs: int = 10
-    batch_size: int = 32
     # model metadata
     model_name: str = 'lstm'
 
 
 @dataclass
 class CnnParameter:
-    vocab_size: int = 40000  # number of != words in vocabulary
+    # Text parameters
+    max_features: int = 40000  # number of != words in vocabulary
     pad_len: int = 300  # max number of words in each sentence
     epochs: int = 10
     batch_size: int = 32
