@@ -10,8 +10,8 @@ import numpy as np
 class XgBoostParameter:
     # Model parameters
     param_grid = dict({
-        "learning_rate": [0.01, 0.1, 1, 10],
-        "n_estimators": [50, 100, 150, 200]
+        "learning_rate": [0.1, 1, 10],
+        "n_estimators": [50, 100, 200]
     })
 
     # model metadata
@@ -23,7 +23,7 @@ class XgBoostParameter:
 class SVCParameter:
     # Model parameters
     param_grid = dict({
-        'C': [0.01, 0.1, 1, 10, 100],
+        'C': [0.01, 0.1, 1, 10],
     })
 
     # model metadata
@@ -35,9 +35,11 @@ class SVCParameter:
 class LogisticParameter:
     # Model parameters
     param_grid = dict({
-        'penalty': ['l1', 'l2'],
+        # l2 better
+        'penalty': ['l2'],
         'C': [1e-4, 1e-3, 1e-2, 0.1, 1, 10],
-        'solver': ['liblinear', 'saga']
+        # saga performed better
+        'solver': ['saga']
     })
 
     # model metadata
@@ -49,8 +51,9 @@ class LogisticParameter:
 class DecisionTreeParameter:
     # Model parameters
     param_grid = dict({
-        'max_depth': np.arange(10, 300, 10),
-        'criterion': ['gini', 'entropy']
+        'max_depth': np.arange(10, 200, 20),
+        # Better than => option {gini}
+        'criterion': ['entropy']
     })
 
     # model metadata
@@ -62,9 +65,11 @@ class DecisionTreeParameter:
 class RandomForestParameter:
     # Model parameters
     param_grid = dict({
-        'n_estimators': np.arange(10, 200, 10),
-        'max_features': ['sqrt', 'log2'],
-        'criterion': ["gini", "entropy", "log_loss"]
+        'n_estimators': np.arange(10, 200, 20),
+        'max_features': ['log2'],
+        # entropy -> better performance under tests
+        # option {gini, log_loss}
+        'criterion': ["entropy"]
     })
 
     # model metadata

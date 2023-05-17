@@ -1,4 +1,8 @@
 # Byte-compiled / optimized / DLL files
+# ignore large data files
+data/original.csv
+data/preprocessed.csv
+
 *test*.py
 *test*.csv
 __pycache__/

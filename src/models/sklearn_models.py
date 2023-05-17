@@ -4,13 +4,12 @@ SKLEARN implementations
 """
 import warnings
 
-import sklearn.utils
-from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import GridSearchCV, train_test_split, StratifiedKFold
 from sklearn.pipeline import Pipeline
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.feature_selection import SelectKBest, chi2
 from src.logger.logging import get_logger
-from src.preprocess.transformer import CustomTransformer
+from src.preprocess.clean_transformer import CleanTextTransformer
 from src.models.interfaces import ParameterSciKit
 from src.models.object_store import ObjectStore
 
@@ -32,7 +31,6 @@ class TfClassifier:
         self.param_grid = parameters.param_grid
         self.model_name = parameters.model_name
         self.model = None
-        self.tf_vector = None
 
     def fit(self, X: any, y: any, refit: bool = False, clean_data=False) -> None:
         """
@@ -50,44 +48,51 @@ class TfClassifier:
             return
 
         if clean_data:
-            X = CustomTransformer().fit_transform(X)
+            X = CleanTextTransformer().fit_transform(X)
 
-        X, y = sklearn.utils.shuffle(X, y, random_state=42)
+        y = y.astype(int)
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, shuffle=True, random_state=42, stratify=y, test_size=0.1)
 
+        folds = StratifiedKFold(n_splits=5).split(X_train, y_train)
         estimator = self.model_type(random_state=42)
         pipeline = Pipeline([
-            # Ignore terms that appears less than 10 and more than 1000 docs
+            # Ignore terms that appears less than 10 and more than 10000 docs
             # Remove infrequent and too frequent words
-            ('tfidf', TfidfVectorizer(min_df=10, max_df=1000)),
+            ('tfidf', TfidfVectorizer(min_df=10, max_df=10000,
+                                      max_features=100000)),
             # Reduces Input Dimension via Chi_square Selection
-            ('k_best', SelectKBest(score_func=chi2, k=5000)),
+            ('k_best', SelectKBest(score_func=chi2, k=10000)),
             (f'{self.model_name}', estimator)
         ])
 
         tf_idf_params = {
-            # Consider UniGrams and BiGrams
-            'tfidf__ngram_range': [(1, 1), (1, 2)],
-            'tfidf__norm': ['l1', 'l2']
+            # Consider Uni, Bi, Trigrams --> showed best results
+            'tfidf__ngram_range': [(1, 2)],
+            # norm = l1 -> showed better results than l2
+            'tfidf__norm': ['l1']
         }
 
         param_grid = {f"{self.model_name}__{k}": v for k, v in self.param_grid.items()}
         param_grid = {**param_grid, **tf_idf_params}
-        logger.info(msg=f"FITTING_MODEL: {self.model_name} STARTED")
-        grid = GridSearchCV(estimator=pipeline,
-                            param_grid=param_grid,
-                            cv=5,
-                            verbose=5,
-                            scoring=('r2', 'roc_auc', 'f1'),
-                            refit='roc_auc',
-                            )
+        logger.info(msg=f"{self.model_name} : FIT STARTED")
+        self.model = GridSearchCV(estimator=pipeline,
+                                  param_grid=param_grid,
+                                  cv=folds,
+                                  verbose=5,
+                                  scoring=('r2', 'roc_auc', 'f1'),
+                                  refit='f1',
+                                  )
 
-        grid.fit(X=X, y=y.astype(int))
-        logger.info(msg=f"MODEL_FITTING: {self.model_name} DONE!")
+        self.model.fit(X=X_train, y=y_train)
+        logger.info(msg=f"{self.model_name} : FIT DONE")
         # select best models
-        self.model = grid.best_estimator_
-        logger.info(msg=f"TRAINING_SCORES :: {self.model_name} :: {grid.best_score_}")
-        # Store models
+        logger.info(msg=f"{self.model_name} : BEST_ESTIMATOR :: {self.model.best_estimator_}")
+        logger.info(msg=f"{self.model_name} : TRAINING_SCORES :: {self.model.best_score_}")
+        # Store models / drop generator
+        del self.model.cv
         self.store.store_model(obj=self)
+        logger.info(f"{self.model_name} : SCORE_TEST => {self.model.score(X_test, y_test, )}")
 
     def predict(self, X, clean_data=True):
         """
@@ -99,7 +104,7 @@ class TfClassifier:
             _ = self.store.read_model()
             self.__dict__ = _.__dict__
         if clean_data:
-            X = CustomTransformer().fit_transform(X=X)
+            X = CleanTextTransformer().fit_transform(X=X)
         return self.model.predict(X=X)
 
 

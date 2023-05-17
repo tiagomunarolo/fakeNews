@@ -41,8 +41,10 @@ def get_news_g1(url: str = G1_POLITICS) -> None:
     last_height = -1
     if url == G1_SENSACIONALISTA:
         label = False
+    elif url == G1_POLITICS:
+        label = True
     else:
-        label = True if url == G1_POLITICS else None
+        label = None
 
     links = set()
     # Opens driver context
