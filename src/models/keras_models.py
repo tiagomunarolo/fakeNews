@@ -60,37 +60,28 @@ class KerasBaseClassifier:
             X, y, shuffle=True, random_state=42, stratify=y, test_size=0.2)
 
         # create hyperparameters
-        optimizers = [tf.optimizers.legacy.Adam(),
-                      tf.optimizers.legacy.SGD(),
-                      tf.optimizers.legacy.RMSprop()
-                      ]
         metrics = ['accuracy',
                    tf.keras.metrics.Precision(),
                    tf.keras.metrics.Recall(),
-                   tf.keras.metrics.AUC()
-                   ]
+                   tf.keras.metrics.AUC()]
         # Compile model
         estimator = KerasClassifier(
             build_fn=self._compile,
             verbose=1,
             metrics=metrics,
-            batch_size=32
+            batch_size=32,
+            epochs=10,
+            optimizer=tf.optimizers.legacy.Adam(),
         )
-
-        param_grid = {
-            "optimizer": optimizers,
-            "metrics": [metrics],
-            "epochs": [1, 3, 5, 10]
-        }
 
         self.model = GridSearchCV(
             estimator=estimator,
-            param_grid=param_grid,
+            param_grid={},
             cv=3,
             scoring=['roc_auc', 'f1'],
             refit='f1',
             n_jobs=1,
-            verbose=5
+            verbose=0
         )
 
         logger.info(msg=f"{self.params.model_name} : FIT STARTED")
