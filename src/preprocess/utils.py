@@ -38,7 +38,7 @@ def build_dataset() -> None:
     """
     Builds dataset to be analyzed / trained
     """
-    from .transformer import CustomTransformer
+    from .clean_transformer import CleanTextTransformer
     logger.info("Creating Final Dataset")
     # columns_used
     columns_used = ['TEXT', 'TEXT_SIZE', 'LABEL', 'SOURCE']
@@ -86,12 +86,37 @@ def build_dataset() -> None:
     df_gpt = df_gpt[columns_used]
     logger.info("ChatGPT Dataset Done")
 
+    """STEP 5: Sensacionalista data set"""
+    df_sens = pd.read_csv(SENS_PATH, index_col=0).reset_index(drop=True)
+    df_sens['TEXT'] = df_sens['RESUMO'] + " " + df_sens['TEXTO']
+    df_sens = df_sens[['TEXT', 'LABEL']]
+    df_sens['TEXT_SIZE'] = df_sens.TEXT.apply(lambda x: len(x.split()))
+    df_sens['SOURCE'] = 'SENSACIONALISTA'
+    df_sens = df_sens[columns_used]
+    logger.info("SENSACIONALISTA Dataset Done")
+
+    """STEP 6: Folha-SP data set"""
+    folha_df = pd.read_csv(FOLHA_PATH)
+    folha_df = folha_df[['title', 'text', 'category']]
+    folha_df = folha_df[folha_df.category.isin(['poder', 'mercado'])]
+    poder_df = folha_df[folha_df.category.isin(['poder'])]
+    mercado_df = folha_df[folha_df.category.isin(['mercado'])]
+    mercado_df.text = mercado_df.text.str.lower()
+    words = ['govern', 'presiden', 'federa', 'deputad', 'minist']
+    mercado_df = mercado_df[mercado_df.text.str.contains('|'.join(words))]
+    folha_df = pd.concat([poder_df, mercado_df])
+    folha_df['TEXT'] = folha_df['title'] + " " + folha_df['text']
+    folha_df['TEXT_SIZE'] = folha_df.TEXT.apply(lambda x: len(x.split()))
+    folha_df['SOURCE'] = 'FOLHA'
+    folha_df['LABEL'] = True
+    folha_df = folha_df[columns_used]
+
     # concat dataframes
-    final_df = pd.concat([df_g1, df_corpus, df_rumor, df_gpt])
+    final_df = pd.concat([df_g1, df_corpus, df_rumor, df_gpt, df_sens, folha_df])
     final_df.TEXT = final_df.TEXT.str.lower()
     final_df.reset_index(inplace=True, drop=True)
     final_df.to_csv(path_or_buf=ORIGINAL_DATASET, index_label=False)
     logger.info("Final Unified Dataset Done")
-    final_df.TEXT = CustomTransformer().fit_transform(X=final_df.TEXT)
+    final_df.TEXT = CleanTextTransformer().fit_transform(X=final_df.TEXT)
     final_df.drop_duplicates(inplace=True)
     final_df.to_csv(path_or_buf=FINAL_PATH, index_label=False)

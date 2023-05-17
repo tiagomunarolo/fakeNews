@@ -12,6 +12,8 @@ G1_PATH = f"{DATASET_PATH}/g1.csv"
 FAKE_CORPUS = f"{DATASET_PATH}/fake_corpus.csv"
 RUMOR_PATH = f"{DATASET_PATH}/rumor.csv"
 GPT_PATH = f"{DATASET_PATH}/chatgpt.csv"
+SENS_PATH = f"{DATASET_PATH}/sensacionalista.csv"
+FOLHA_PATH = f"{DATASET_PATH}/folha_sp.csv"
 
 LOGISTIC = "LOGISTIC"
 XGBOOST = "XGBOOST"
