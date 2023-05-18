@@ -10,39 +10,33 @@ from src.constants import *
 DATA = os.getenv('DATA', "./data/preprocessed.csv")
 
 CLASSIFIER_PARAMETERS = {
-    LOGISTIC: LogisticParameter,
-    XGBOOST: XgBoostParameter,
-    RANDOM_FOREST: RandomForestParameter,
-    CNN: CnnParameter,
-    LSTM: LstmParameter,
-    DECISION_TREE: DecisionTreeParameter,
-    SVM: SVCParameter
+    LOGISTIC: (LogisticParameter, TfClassifier),
+    XGBOOST: (XgBoostParameter, TfClassifier),
+    RANDOM_FOREST: (RandomForestParameter, TfClassifier),
+    DECISION_TREE: (DecisionTreeParameter, TfClassifier),
+    SVM: (SVCParameter, TfClassifier),
+    CNN: (CnnParameter, CnnClassifier),
+    LSTM: (LstmParameter, LstmClassifier),
 }
 
 
 class Executor:
 
     @staticmethod
-    def run(model, path: str = DATA, refit: bool = False):
+    def fit(model: str, path: str = DATA, refit: bool = False):
         """
-        Run --> execute model
+        Run --> Fit <model> classifier
         Parameters
         ----------
-        model:
+        model: str :: Model identifier
         path: str :: path of data training
         refit: bool :: force models to be refitted
         """
         X, y = load_dataset(path=path)
         if model not in MODELS:
             raise ModelNotImplementedError(f"{model} Not Implemented!")
-        elif model == CNN:
-            classifier = CnnClassifier
-        elif model == LSTM:
-            classifier = LstmClassifier
-        else:
-            classifier = TfClassifier
 
-        param = CLASSIFIER_PARAMETERS.get(model)
+        param, classifier = CLASSIFIER_PARAMETERS.get(model)
         classifier(parameters=param).fit(X=X, y=y, refit=refit)
 
 

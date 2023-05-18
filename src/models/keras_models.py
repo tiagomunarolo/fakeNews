@@ -10,7 +10,7 @@ from keras.wrappers.scikit_learn import KerasClassifier
 from src.models.interfaces import ParameterCnn, ParameterLstm
 from src.models.object_store import ObjectStore
 from src.preprocess.clean_transformer import CleanTextTransformer
-from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_auc_score, accuracy_score
 from src.preprocess.word2vec_transformer import TokenizerTransformer
 
@@ -54,6 +54,7 @@ class KerasBaseClassifier:
         if clean_data:
             X = CleanTextTransformer().fit_transform(X=X)
 
+        y = y.astype(int)
         self.tokenizer = TokenizerTransformer()
         X = self.tokenizer.fit_transform(X)
         X_train, X_test, y_train, y_test = train_test_split(
@@ -65,34 +66,19 @@ class KerasBaseClassifier:
                    tf.keras.metrics.Recall(),
                    tf.keras.metrics.AUC()]
         # Compile model
-        estimator = KerasClassifier(
+        self.model = KerasClassifier(
             build_fn=self._compile,
             verbose=1,
             metrics=metrics,
             batch_size=32,
             epochs=10,
-            optimizer=tf.optimizers.legacy.Adam(),
-        )
-
-        self.model = GridSearchCV(
-            estimator=estimator,
-            param_grid={},
-            cv=3,
-            scoring=['roc_auc', 'f1'],
-            refit='f1',
-            n_jobs=1,
-            verbose=0
+            validation_data=(X_test, y_test),
+            optimizer=tf.optimizers.legacy.Adam(1e-4),
         )
 
         logger.info(msg=f"{self.params.model_name} : FIT STARTED")
         self.model.fit(X_train, y_train)
         logger.info(msg=f"{self.params.model_name} : FIT DONE")
-        # delete parameters to avoid pickle error
-        self.optimizer_weights = self.model.estimator.sk_params['optimizer'].get_weights()
-        del self.model.estimator.sk_params['optimizer']
-        del self.model.estimator.sk_params['metrics']
-        del self.model.best_estimator_.sk_params['optimizer']
-        del self.model.best_estimator_.sk_params['metrics']
         self.store.store_model(obj=self)
         y_predict = self.model.predict(X_test)
         logger.info(f"{self.params.model_name} : SCORE_TEST (ROC_AUC) => {roc_auc_score(y_test, y_predict)}")
