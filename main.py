@@ -14,6 +14,7 @@ CLASSIFIER_PARAMETERS = {
     XGBOOST: (XgBoostParameter, TfClassifier),
     RANDOM_FOREST: (RandomForestParameter, TfClassifier),
     DECISION_TREE: (DecisionTreeParameter, TfClassifier),
+    BAYES: (BayesParameter, TfClassifier),
     SVM: (SVCParameter, TfClassifier),
     CNN: (CnnParameter, CnnClassifier),
     LSTM: (LstmParameter, LstmClassifier),

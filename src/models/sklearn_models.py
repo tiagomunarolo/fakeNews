@@ -55,7 +55,10 @@ class TfClassifier:
             X, y, shuffle=True, random_state=42, stratify=y, test_size=0.1)
 
         folds = StratifiedKFold(n_splits=5).split(X_train, y_train)
-        estimator = self.model_type(random_state=42)
+        try:
+            estimator = self.model_type(random_state=42)
+        except TypeError:
+            estimator = self.model_type()
         pipeline = Pipeline([
             # Ignore terms that appears less than 10 and more than 10000 docs
             # Remove infrequent and too frequent words
