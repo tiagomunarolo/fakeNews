@@ -7,7 +7,9 @@ class TokenizerTransformer(BaseEstimator, TransformerMixin):
     """
     keras.preprocessing.text.Tokenizer
     """
-    tokenizer = Tokenizer(num_words=40000)
+
+    def __init__(self):
+        self.tokenizer = Tokenizer(num_words=40000)
 
     def transform(self, X, y=None):
         sequences = self.tokenizer.texts_to_sequences(texts=X)
