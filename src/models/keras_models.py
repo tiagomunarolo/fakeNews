@@ -4,9 +4,10 @@ Keras LSTM, CNN implementation for fake news detection
 import keras.backend
 import numpy as np
 import tensorflow as tf
+from functools import partial
 from keras import models, layers
 from keras.layers import Input, Dense, Bidirectional, LSTM, Embedding
-from keras.wrappers.scikit_learn import KerasClassifier
+from scikeras.wrappers import KerasClassifier
 from src.models.interfaces import ParameterCnn, ParameterLstm
 from src.models.object_store import ObjectStore
 from src.preprocess.clean_transformer import CleanTextTransformer
@@ -83,15 +84,18 @@ class KerasBaseClassifier:
             tf.keras.metrics.Precision(name="precision"),
             tf.keras.metrics.Recall(name="recall"),
         ]
+        optimizer = tf.keras.optimizers.Adam(1e-4)
+
         # Compile model
+        compile_method = partial(self._compile, optimizer, metrics)
         self.model = KerasClassifier(
-            build_fn=self._compile,
+            build_fn=compile_method,
             verbose=1,
             metrics=metrics,
             batch_size=256,
             epochs=100,
-            validation_data=(X_test, y_test),
-            optimizer=tf.optimizers.legacy.Adam(1e-4),
+            fit__validation_data=(X_test, y_test),
+            optimizer=optimizer,
             class_weight={0: weight_false, 1: weight_pos},
             callbacks=callbacks,
             shuffle=True
@@ -99,7 +103,11 @@ class KerasBaseClassifier:
 
         logger.info(msg=f"{self.params.model_name} : FIT STARTED")
         self.model.fit(X_train, y_train)
-        self.history = self.model.history  # store history
+        # store history
+        try:
+            self.history = self.model.history
+        except AttributeError:
+            self.history = self.model.history_
         logger.info(msg=f"{self.params.model_name} : FIT DONE")
         self.store.store_model(obj=self)
         y_predict = (self.model.predict(X_test) > 0.5).astype(int)

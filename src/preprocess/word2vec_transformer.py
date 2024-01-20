@@ -16,6 +16,6 @@ class TokenizerTransformer(BaseEstimator, TransformerMixin):
         return tf.keras.preprocessing.sequence.pad_sequences(
             sequences=sequences, maxlen=300)
 
-    def fit(self, X, *args, **kwargs) -> None:
+    def fit(self, X, *args, **kwargs):
         self.tokenizer.fit_on_texts(texts=X)
         return self

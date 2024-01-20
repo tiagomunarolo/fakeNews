@@ -1,4 +1,5 @@
 import pandas as pd
+
 from sklearn.base import BaseEstimator, TransformerMixin
 from nltk.stem import SnowballStemmer
 from unicodedata import normalize
@@ -6,6 +7,9 @@ from nltk.corpus import stopwords
 import re
 import nltk
 import spacy
+from pandarallel import pandarallel
+
+pandarallel.initialize(progress_bar=True)
 
 
 class CleanTextTransformer(BaseEstimator, TransformerMixin):
@@ -25,24 +29,37 @@ class CleanTextTransformer(BaseEstimator, TransformerMixin):
         return self
 
     def __init__(self):
-        self._load_libs()
-        # Get stop words
-        self.stop = " ".join(stopwords.words('portuguese'))
-        self.stop = normalize('NFKD', self.stop).encode('ASCII', 'ignore').decode('ASCII').split()
-        self.remove = ['verdade', 'fato', 'real', 'fake', 'mentir', 'falso']
-        self.nlp = spacy.load("pt_core_news_lg")
-        stemmer = SnowballStemmer(language="portuguese")
-        self.remove = [stemmer.stem(w) for w in self.remove]
+        self.nlp = self._load_libs()
+        # Spacy Stop Words
+        _to_remove = ' '.join(self.nlp.Defaults.stop_words)
+        _to_remove = normalize('NFKD', _to_remove). \
+            encode('ASCII', 'ignore'). \
+            decode('ASCII').split()
+        # Nltk stop words
+        _to_remove_nltk = " ".join(stopwords.words('portuguese'))
+        _to_remove_nltk = normalize('NFKD', _to_remove_nltk). \
+            encode('ASCII', 'ignore'). \
+            decode('ASCII').split()
+        # Word Stemming for common words
+        common_words = ['verdade', 'fato', 'real', 'fake', 'mentir', 'falso']
+        common_words = [SnowballStemmer(language="portuguese").stem(w) for w in common_words]
+        self.common_words = common_words
+        # Words to be removed
+        self.remove = set(_to_remove + _to_remove_nltk + common_words)
 
     @staticmethod
-    def _load_libs() -> None:
+    def _load_libs() -> spacy.language.Language:
         """
         Load required NLTK libs
         """
         nltk.download('stopwords', quiet=True)
         nltk.download('wordnet', quiet=True)
         nltk.download('omw-1.4', quiet=True)
-        spacy.load('pt_core_news_lg')
+        try:
+            return spacy.load('pt_core_news_lg')
+        except OSError:
+            spacy.cli.download("pt_core_news_lg")
+            return spacy.load('pt_core_news_lg')
 
     def clean_text(self, content: str) -> str:
         """
@@ -52,15 +69,11 @@ class CleanTextTransformer(BaseEstimator, TransformerMixin):
         """
 
         def check_word(word):
+            if word in self.remove:
+                return False
             if len(word) <= 2:
                 return False
-            if word.isnumeric():
-                return False
-            if word in self.stop:
-                return False
-            if self.nlp.vocab[str(word)].is_stop:
-                return False
-            if word.startswith(tuple(self.remove)):
+            if word.startswith(tuple(self.common_words)):
                 return False
             return True
 
@@ -88,4 +101,4 @@ class CleanTextTransformer(BaseEstimator, TransformerMixin):
             X = pd.Series(X)
         elif isinstance(X, list):
             X = pd.Series(X)
-        return X.apply(self.clean_text)
+        return X.parallel_apply(self.clean_text)

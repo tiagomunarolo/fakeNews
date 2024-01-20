@@ -24,11 +24,13 @@ CLASSIFIER_PARAMETERS = {
 class Executor:
 
     @staticmethod
-    def fit(model: str, path: str = DATA, refit: bool = False):
+    def fit(model: str, path: str = DATA,
+            refit: bool = False, clean_data: bool = False):
         """
         Run --> Fit <model> classifier
         Parameters
         ----------
+        clean_data: bool :: 
         model: str :: Model identifier
         path: str :: path of data training
         refit: bool :: force models to be refitted
@@ -38,7 +40,12 @@ class Executor:
             raise ModelNotImplementedError(f"{model} Not Implemented!")
 
         param, classifier = CLASSIFIER_PARAMETERS.get(model)
-        classifier(parameters=param).fit(X=X, y=y, refit=refit)
+        classifier(parameters=param).fit(
+            X=X,
+            y=y,
+            refit=refit,
+            clean_data=clean_data
+        )
 
     @staticmethod
     def predict(X: Union[str, List[str]],
