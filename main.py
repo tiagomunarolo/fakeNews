@@ -1,4 +1,4 @@
-from typing import List, Union, Dict
+from typing import List, Union, Dict, NewType
 from src.models import LstmClassifier
 from src.models import CnnClassifier
 from src.models import TfClassifier
@@ -19,6 +19,8 @@ CLASSIFIER_PARAMETERS = {
     CNN: (CnnParameter, CnnClassifier),
     LSTM: (LstmParameter, LstmClassifier),
 }
+
+Predicted = NewType('Predicted', Dict[str, Union[bool, List[bool]]])
 
 
 class Executor:
@@ -48,9 +50,11 @@ class Executor:
         )
 
     @staticmethod
-    def predict(X: Union[str, List[str]],
-                model: Union[str, List[str]] = "") -> \
-            Dict[str, Union[bool, List[bool]]]:
+    def predict(
+            X: Union[str, List[str]],
+            model: Union[str, List[str]] = "",
+            clean_data=True
+    ) -> Predicted:
 
         if model and isinstance(model, str) and model not in MODELS:
             raise ModelNotImplementedError(f"{model} Not Implemented!")
@@ -64,7 +68,8 @@ class Executor:
         predictions = dict()
         for model in execution_list:
             param, classifier = CLASSIFIER_PARAMETERS.get(model)
-            response = classifier(parameters=param).predict(X=X)
+            response = classifier(parameters=param). \
+                predict(X=X, clean_data=clean_data)
             predictions[model] = response
 
         return predictions
