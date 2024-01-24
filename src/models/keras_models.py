@@ -4,13 +4,14 @@ Keras LSTM, CNN implementation for fake news detection
 import keras.backend
 import numpy as np
 import tensorflow as tf
+from functools import partial
 from keras import models, layers
 from keras.layers import Input, Dense, Bidirectional, LSTM, Embedding
-from keras.wrappers.scikit_learn import KerasClassifier
+from scikeras.wrappers import KerasClassifier
 from src.models.interfaces import ParameterCnn, ParameterLstm
 from src.models.object_store import ObjectStore
 from src.preprocess.clean_transformer import CleanTextTransformer
-from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_auc_score, accuracy_score
 from src.preprocess.word2vec_transformer import TokenizerTransformer
 
@@ -25,7 +26,7 @@ class KerasBaseClassifier:
     def __init__(self, parameters: Union[ParameterLstm, ParameterCnn]):
         self.store = ObjectStore(path=f"./{parameters.model_name}.model")
         self.params = parameters
-        self.optimizer_weights = None  # Just in case
+        self.history = None
         self.tokenizer = None
         self.model = None
 
@@ -54,56 +55,62 @@ class KerasBaseClassifier:
         if clean_data:
             X = CleanTextTransformer().fit_transform(X=X)
 
+        y = y.astype(int)
+        # Fit on entire Corpus
         self.tokenizer = TokenizerTransformer()
-        X = self.tokenizer.fit_transform(X)
+        self.tokenizer.fit(X)
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, shuffle=True, random_state=42, stratify=y, test_size=0.2)
+        # Transform train/test sets
+        X_train = self.tokenizer.transform(X_train)
+        X_test = self.tokenizer.transform(X_test)
+        counts = y_train.value_counts()
+        weight_false = 1 / counts.values.min()
+        weight_pos = 1 / counts.values.max()
+
+        # define callbacks
+        callbacks = [
+            tf.keras.callbacks.EarlyStopping(monitor='val_tn', mode="max", patience=10, verbose=1),
+            tf.keras.callbacks.EarlyStopping(monitor='val_tp', mode="max", patience=10, verbose=1),
+            tf.keras.callbacks.EarlyStopping(monitor='val_loss', mode="min", patience=10, verbose=1),
+        ]
 
         # create hyperparameters
-        optimizers = [tf.optimizers.legacy.Adam(),
-                      tf.optimizers.legacy.SGD(),
-                      tf.optimizers.legacy.RMSprop()
-                      ]
-        metrics = ['accuracy',
-                   tf.keras.metrics.Precision(),
-                   tf.keras.metrics.Recall(),
-                   tf.keras.metrics.AUC()
-                   ]
+        metrics = [
+            tf.keras.metrics.FalseNegatives(name="fn"),
+            tf.keras.metrics.FalsePositives(name="fp"),
+            tf.keras.metrics.TrueNegatives(name="tn"),
+            tf.keras.metrics.TruePositives(name="tp"),
+            tf.keras.metrics.Precision(name="precision"),
+            tf.keras.metrics.Recall(name="recall"),
+        ]
+        optimizer = tf.keras.optimizers.Adam(1e-4)
+
         # Compile model
-        estimator = KerasClassifier(
-            build_fn=self._compile,
+        compile_method = partial(self._compile, optimizer, metrics)
+        self.model = KerasClassifier(
+            build_fn=compile_method,
             verbose=1,
             metrics=metrics,
-            batch_size=32
-        )
-
-        param_grid = {
-            "optimizer": optimizers,
-            "metrics": [metrics],
-            "epochs": [1, 3, 5, 10]
-        }
-
-        self.model = GridSearchCV(
-            estimator=estimator,
-            param_grid=param_grid,
-            cv=3,
-            scoring=['roc_auc', 'f1'],
-            refit='f1',
-            n_jobs=1,
-            verbose=5
+            batch_size=256,
+            epochs=100,
+            fit__validation_data=(X_test, y_test),
+            optimizer=optimizer,
+            class_weight={0: weight_false, 1: weight_pos},
+            callbacks=callbacks,
+            shuffle=True
         )
 
         logger.info(msg=f"{self.params.model_name} : FIT STARTED")
         self.model.fit(X_train, y_train)
+        # store history
+        try:
+            self.history = self.model.history
+        except AttributeError:
+            self.history = self.model.history_
         logger.info(msg=f"{self.params.model_name} : FIT DONE")
-        # delete parameters to avoid pickle error
-        self.optimizer_weights = self.model.estimator.sk_params['optimizer'].get_weights()
-        del self.model.estimator.sk_params['optimizer']
-        del self.model.estimator.sk_params['metrics']
-        del self.model.best_estimator_.sk_params['optimizer']
-        del self.model.best_estimator_.sk_params['metrics']
         self.store.store_model(obj=self)
-        y_predict = self.model.predict(X_test)
+        y_predict = (self.model.predict(X_test) > 0.5).astype(int)
         logger.info(f"{self.params.model_name} : SCORE_TEST (ROC_AUC) => {roc_auc_score(y_test, y_predict)}")
         logger.info(f"{self.params.model_name} : SCORE_TEST (ACCURACY) => {accuracy_score(y_test, y_predict)}")
 
@@ -143,19 +150,15 @@ class LstmClassifier(KerasBaseClassifier):
         """
         # define the models
         keras.backend.clear_session()
-        inputs = Input(shape=(None,), dtype="int32")
-        x = Embedding(
-            input_dim=self.params.max_features,
-            output_dim=self.params.layer_1)(inputs)
+        model = models.Sequential()
+        model.add(Input(shape=(None,), dtype="int32"))
+        model.add(Embedding(input_dim=self.params.max_features, output_dim=self.params.layer_1))
         # Add 3 bidirectional LSTMs
-        x = Bidirectional(LSTM(units=self.params.layer_1,
-                               return_sequences=True))(x)
-        x = Bidirectional(LSTM(units=self.params.layer_2,
-                               return_sequences=True))(x)
-        x = Bidirectional(LSTM(units=self.params.layer_3))(x)
+        model.add(Bidirectional(LSTM(units=self.params.layer_1, return_sequences=True)))
+        model.add(Bidirectional(LSTM(units=self.params.layer_2, return_sequences=True)))
+        model.add(LSTM(units=self.params.layer_3))
         # Add a classifier
-        outputs = Dense(1, activation="sigmoid")(x)
-        model = tf.keras.Model(inputs, outputs)
+        model.add(Dense(1, activation="sigmoid"))
         model.compile(
             loss=tf.keras.losses.BinaryCrossentropy(),
             optimizer=optimizer,

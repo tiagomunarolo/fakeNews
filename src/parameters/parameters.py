@@ -3,7 +3,20 @@ from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.svm import LinearSVC
+from sklearn.naive_bayes import BernoulliNB
 import numpy as np
+
+
+@dataclass
+class BayesParameter:
+    # Model parameters
+    param_grid = dict({
+        "alpha": [0.001, 0.01, 0.1, 1, 10],
+    })
+
+    # model metadata
+    model_name = 'bayes'
+    model_type = BernoulliNB
 
 
 @dataclass

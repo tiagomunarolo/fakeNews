@@ -5,3 +5,4 @@ from .parameters import XgBoostParameter
 from .parameters import CnnParameter
 from .parameters import SVCParameter
 from .parameters import LstmParameter
+from .parameters import BayesParameter
